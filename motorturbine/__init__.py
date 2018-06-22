@@ -1,13 +1,11 @@
 from . import errors, connection, fields
 import types
-import copy
+from pymongo import ReturnDocument
 
-protected_fields = ['_id']
-special_attributes = ['fields', '_BaseDocument__sync_fields']
+special_attributes = ['fields']
 
 
 class BaseDocument(object):
-    _id = None
     fields = {}
 
     def __new__(cls, **kwargs):
@@ -15,8 +13,9 @@ class BaseDocument(object):
         normals = dir(BaseDocument)
         doc = super(BaseDocument, cls).__new__(cls)
 
-        id_field = fields.ObjectIdField()
-
+        # create general _id field
+        id_field = fields.ObjectIdField(sync_enabled=False)
+        id_field._connect_document(doc, '_id')
         object.__setattr__(doc, '_id', id_field)
         doc.fields = {'_id': id_field}
 
@@ -25,8 +24,12 @@ class BaseDocument(object):
                 if not isinstance(field, fields.BaseField):
                     raise errors.FieldExpected(field)
 
+                field._connect_document(doc, name)
                 object.__setattr__(doc, name, field)
                 doc.fields[name] = field
+
+        # add attribute for syncs
+        object.__setattr__(doc, '_sync_fields', {})
 
         return doc
 
@@ -45,16 +48,23 @@ class BaseDocument(object):
 
         field.set_value(value)
 
-    def __getattribute__(self, attr):
-        val = super().__getattribute__(attr)
-        if attr in special_attributes:
-            return val
+    def update_sync(self, name, value):
+        self._sync_fields[name] = value
 
+    def __getattribute__(self, attr):
         fields = super().__getattribute__('fields')
-        field = fields.get(attr, None)
+
+        path_split = attr.split('.')
+        field_attr = path_split[0]
+        field = fields.get(field_attr, None)
+
         if field is None:
-            return val
-        return field.value
+            return super().__getattribute__(attr)
+
+        if len(path_split) == 1:
+            return field.value
+
+        return getattr(field, '.'.join(path_split))
 
     async def save(self):
         c = connection.Connection()
@@ -63,45 +73,29 @@ class BaseDocument(object):
         if self._id is None:
             insert_fields = {
                 name: getattr(self, name)
-                for name in self.fields if name not in protected_fields
+                for name in self.fields if name != '_id'
             }
             doc = await coll.insert_one({**insert_fields})
             self._id = doc.inserted_id
         else:
-            old_fields = {}
-            update_operations = {}
-
-            for name in self.fields:
-                field = self.fields[name]
-                if not field.did_change():
-                    continue
-
-                old, update = field.get_query_value(name)
-                old_fields.update(old)
-
-                update_operations = {
-                    key: {
-                        **update_operations.get(key, {}),
-                        **update.get(key, {})
-                    }
-                    for key in set([*update.keys(), *update_operations.keys()])
-                }
+            if len(self._sync_fields) == 0:
+                return
 
             while True:
-                result = await coll.update_one({
-                    '_id': self._id,
-                    **old_fields
-                }, update_operations)
+                updates = {
+                    name: getattr(self, name) for name in self._sync_fields
+                }
+                projection = {'_id': 0}
 
-                if result.modified_count == 1:
-                    for field in self.fields.values():
-                        field.synced()
+                result = await coll.update_one(
+                    {'_id': self._id, **self._sync_fields},
+                    {'$set': updates})
+
+                if result.matched_count == 1:
                     break
 
-                needed = {name: 1 for name in old_fields}
-                needed['_id'] = 0
-                doc = await coll.find_one({'_id': self._id}, needed)
-                old_fields = {}
-                for name in doc:
-                    partial = name.split('.')[0]
-                    old_fields[name] = doc[partial]
+                changed_doc = await coll.find_one(
+                    {'_id': self._id}, projection=projection)
+
+                for name, val in changed_doc.items():
+                    self.fields[name].set_value(val)

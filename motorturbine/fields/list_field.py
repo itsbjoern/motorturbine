@@ -1,52 +1,49 @@
 from .. import errors
 from . import base_field
+import copy
 
 
 class ListWrapper(list):
-    old_list = None
-
-    def __getitem__(self, index):
-        return super().__getitem__(index)
-
-    def __delitem__(self, index):
-        del self.query[index]
-        super().__delitem__(index)
-
-    def __len__(self):
-        return super().__len__()
+    def __init__(self, *args, list_field=None, **kwargs):
+        object.__setattr__(self, 'list_field', list_field)
+        super().__init__(*args, **kwargs)
 
     def __setitem__(self, index, value):
-        if self.old_list is None:
-            self.old_list = {}
-        self.old_list[index] = self.__getitem__(index)
+        self.list_field.validate(value)
+        old_value = super().__getitem__(index)
         super().__setitem__(index, value)
-
-    def insert(self, index, value):
-        super().insert(index, value)
+        self.list_field.update_by_index(index, old_value)
 
 
 class ListField(base_field.BaseField):
     def __init__(self, sub_field, default=None):
         self.sub_field = sub_field
         super().__init__()
-        self.value = ListWrapper()
+        self.value = ListWrapper(list_field=self)
+
+    def update_by_index(self, index, value):
+        self.document.update_sync('{}.{}'.format(self.name, index), value)
+
+    def set_value(self, value):
+        if not isinstance(value, list):
+            raise errors.TypeMismatch(list, value)
+
+        for item in value:
+            self.validate(value)
+        old_val = copy.deepcopy(self.value)
+        sync_val = {}
+        self.value.clear()
+        self.value.extend(value)
+        self.document.update_sync(name, old_val)
+
+    def __getattr__(self, attr):
+        path_split = attr.split('.')
+        field_attr = path_split[0]
+
+        if len(path_split) == 1:
+            return super().__getattr__(attr)
+
+        return self.value[int(path_split[1])]
 
     def validate_field(self, value):
         return self.sub_field.validate(value)
-
-    def did_change(self):
-        return len(self.value.old_list.keys()) > 0
-
-    def synced(self):
-        self.value.old_list = None
-
-    def get_query(self, name):
-        updates = {
-            '{}.{}'.format(name, index): self.value[index]
-            for index in self.value.old_list
-        }
-        old = {
-            '{}.{}'.format(name, index): value
-            for index, value in self.value.old_list.items()
-        }
-        return {name: old}, {'$set': updates}
