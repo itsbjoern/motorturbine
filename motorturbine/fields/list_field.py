@@ -29,7 +29,7 @@ class ListField(base_field.BaseField):
             raise errors.TypeMismatch(list, value)
 
         for item in value:
-            self.validate(value)
+            self.validate(item)
         old_val = copy.deepcopy(self.value)
         sync_val = {}
         self.value.clear()
