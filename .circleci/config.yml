@@ -58,13 +58,13 @@ jobs:
     steps:
       - checkout
       - run:
-        name: dist
-        command: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install twine
-          python3 setup.py sdist bdist_wheel
-          twine upload -u $PYPI_USER -p $PYPI_PASS dist/*
+          name: dist
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install twine
+            python3 setup.py sdist bdist_wheel
+            twine upload -u $PYPI_USER -p $PYPI_PASS dist/*
 
 workflows:
   version: 2
