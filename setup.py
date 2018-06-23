@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='motorturbine',
-      version='0.1.0',
+      version='0.1.1',
       description='A ORM package for asyncio and motor',
       long_description=long_description,
       long_description_content_type="text/markdown",
