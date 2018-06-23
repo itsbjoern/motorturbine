@@ -23,6 +23,8 @@ class BaseDocument(object):
     >>> await doc.save()
     >>> print(doc)
     <ExampleDocument _id=ObjectId('$oid') name='Changed My Name' number=15>
+
+    :raises FieldNotFound: On access of a non-existent field
     """
 
     def __new__(cls, **kwargs):
