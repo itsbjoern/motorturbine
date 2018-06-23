@@ -1,5 +1,5 @@
 Sphinx==1.7.5
 sphinx-autobuild==0.7.1
-sphinxcontrib-asyncio==0.2.0
+sphinxcontrib-trio==1.0.1
 
 -e git+git@github.com:BFriedrichs/dockerdb.git@53f5f3234e833326c171b3f73c61e6dc32b052da#egg=dockerdb

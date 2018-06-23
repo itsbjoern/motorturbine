@@ -40,7 +40,7 @@ release = ''
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinxcontrib.asyncio'
+    'sphinxcontrib_trio'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -158,3 +158,4 @@ texinfo_documents = [
 
 
 # -- Extension configuration -------------------------------------------------
+add_module_names = False
