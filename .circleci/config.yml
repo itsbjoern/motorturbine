@@ -62,7 +62,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install twine
+            pip install wheel twine
             python3 setup.py sdist bdist_wheel
             twine upload -u $PYPI_USER -p $PYPI_PASS dist/*
 
