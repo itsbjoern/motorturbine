@@ -1,3 +1,5 @@
+.. _fields:
+
 BaseField
 ---------
 .. autoclass:: motorturbine.fields.BaseField

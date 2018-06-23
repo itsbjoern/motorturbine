@@ -6,12 +6,13 @@
 Welcome to Motorturbine's documentation!
 ========================================
 
-.. include:: ./intro.rst
+.. include:: intro.rst
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
-   module/motorturbine
+   module/tutorial
+   module/reference/reference
 
 Indices and tables
 ==================

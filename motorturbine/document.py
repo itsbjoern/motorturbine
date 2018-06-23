@@ -108,6 +108,9 @@ class BaseDocument(object):
         these changes first and only then update them to avoid critical write
         errors.
 
+        If a document has not been saved before the '_id' field will be set
+        automatically after the update is done.
+
         :param int limit: optional *(0)* –
             The maximum amount of tries before a save operation fails.
             Can be used as a way to catch problematic state or to probe if the

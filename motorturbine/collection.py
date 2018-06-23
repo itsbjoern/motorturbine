@@ -12,7 +12,7 @@ def Collection(cls):
         """Queries the collection for multiple objects
         as defined by the supplied filters. For querying
         Motorturbine supplies its own functionality in form
-        of :class:`QueryBlock`s.
+        of :class:`QueryBlock`.
         """
         for name in kwargs:
             if not hasattr(cls, name):

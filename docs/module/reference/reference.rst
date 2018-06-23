@@ -1,3 +1,6 @@
+Reference
+=========
+
 Documents
 ---------
 Possible ways to create new documents. For now only one way using the BaseDocument class.
