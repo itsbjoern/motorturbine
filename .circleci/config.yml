@@ -22,7 +22,8 @@ jobs:
             - ~/
 
   style:
-    machine: true
+    docker:
+      - image: circleci/python:3.6.1
     working_directory: ~/repo
     steps:
       - restore_cache:
@@ -34,7 +35,8 @@ jobs:
             pycodestyle ~/repo/motorturbine
 
   test:
-    machine: true
+    docker:
+      - image: circleci/python:3.6.1
     working_directory: ~/repo
     steps:
       - restore_cache:
