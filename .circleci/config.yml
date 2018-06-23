@@ -81,6 +81,6 @@ workflows:
           requires:
             - style
             - test
-          # filters:
-          #   tags:
-          #     only: /^v\d+\.\d+\.\d+$/
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
