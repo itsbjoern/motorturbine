@@ -133,12 +133,12 @@ class isin(QueryBlock):
 
     Example usage:
 
-    >>> await Document.get_objects(num=isin(5))
+    >>> await Document.get_objects(num=isin([1, 4, 5]))
 
     Query:
 
-    >>> isin(5)()
-    {'$in': 5}
+    >>> isin([1, 4, 5])()
+    {'$in': [1, 4, 5]}
     """
     def __call__(self):
         return {'$in': self.value}
@@ -149,12 +149,12 @@ class nin(QueryBlock):
 
     Example usage:
 
-    >>> await Document.get_objects(num=nin(5))
+    >>> await Document.get_objects(num=nin([1, 4, 5]))
 
     Query:
 
-    >>> nin(5)()
-    {'$nin': 5}
+    >>> nin([1, 4, 5])()
+    {'$nin': [1, 4, 5]}
     """
     def __call__(self):
         return {'$nin': self.value}
