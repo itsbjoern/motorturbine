@@ -9,12 +9,11 @@ class BaseException(Exception):
 class FieldExpected(BaseException):
     """__init__(received)
 
-    Is used to raise an exception when a Document is created with an attribute
+    Is raised when a Document is created with an attribute
     that is not a :class:`~motorturbine.errors.BaseField`.
 
-    Output:
-
-    >>> Expected instance of BaseField, got str!
+    >>> raise FieldExpected(str)
+    Expected instance of BaseField, got str!
 
     :param received:
         The received type
@@ -25,11 +24,10 @@ class FieldExpected(BaseException):
 class TypeMismatch(BaseException):
     """__init__(expected, received)
 
-    Is used to raise an exception when a incorrect type was supplied.
+    Is raised when an incorrect type was supplied.
 
-    Output:
-
-    >>> Expected instance of int, got str!
+    >>> raise TypeMismatch(int, str)
+    Expected instance of int, got str!
 
     :param expected:
         The expected type.
@@ -37,6 +35,41 @@ class TypeMismatch(BaseException):
         The received type
     """
     message = 'Expected instance of {!r}, got {!r}!'
+
+
+class FieldNotFound(BaseException):
+    """__init__(cls, field_name)
+
+    Is raised when trying to access a property that isn't present as a field.
+
+    >>> raise FieldNotFound(doc, 'attr')
+    Field 'attr' was not found on object \
+    <ExampleDocument name='Changed My Name' number=15>.
+
+    :param int limit:
+        The retry limit
+    :param BaseDocument received:
+        The document that couldn't be synced
+    """
+    message = 'Field {!r} was not found on object {!r}.'
+
+
+class RetryLimitReached(BaseException):
+    """__init__(limit, document)
+
+    Is raised during the synchronisation process if the
+    specified retry limit is reached.
+
+    >>> raise RetryLimitReached(10, doc)
+    Reached the retry limit (10) while trying to save \
+    <ExampleDocument name='Changed My Name' number=15>.
+
+    :param int limit:
+        The retry limit
+    :param BaseDocument received:
+        The document that couldn't be synced
+    """
+    message = 'Reached the retry limit ({!r}) while trying to save {!r}.'
 
 
 class ConfigurationMismatch(BaseException):

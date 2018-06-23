@@ -18,7 +18,7 @@ class DictWrapper(dict):
 
 class MapField(base_field.BaseField):
     """__init__(value_field, key_field=StringField(), *, \
-                default=None, required=False)
+    default=None, required=False)
 
     This field only allows a `dict` type to be set as its value.
 

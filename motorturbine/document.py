@@ -1,7 +1,6 @@
 from . import errors, connection, fields
 import types
-
-special_attributes = ['fields']
+import copy
 
 
 class BaseDocument(object):
@@ -25,67 +24,79 @@ class BaseDocument(object):
     >>> print(doc)
     <ExampleDocument _id=ObjectId('$oid') name='Changed My Name' number=15>
     """
-    fields = {}
 
     def __new__(cls, **kwargs):
-        custom_fields = {}
         normals = dir(BaseDocument)
         doc = super(BaseDocument, cls).__new__(cls)
+        object.__setattr__(doc, '_fields', {})
+        doc_fields = object.__getattribute__(doc, '_fields')
 
         # create general _id field
         id_field = fields.ObjectIdField(sync_enabled=False)
         id_field._connect_document(doc, '_id')
-        object.__setattr__(doc, '_id', id_field)
-        doc.fields = {'_id': id_field}
+
+        doc_fields['_id'] = id_field
 
         for name, field in cls.__dict__.items():
             if name not in normals and not isinstance(field, types.MethodType):
                 if not isinstance(field, fields.BaseField):
                     raise errors.FieldExpected(field)
 
+                field = copy.deepcopy(field)
                 field._connect_document(doc, name)
-                object.__setattr__(doc, name, field)
-                doc.fields[name] = field
+                doc_fields[name] = field
 
         # add attribute for syncs
         object.__setattr__(doc, '_sync_fields', {})
 
         return doc
 
+    def _get_fields(self):
+        return object.__getattribute__(self, '_fields')
+
+    def _get_sync_fields(self):
+        return object.__getattribute__(self, '_sync_fields')
+
     def __init__(self, **kwargs):
-        for name, field in self.fields.items():
+        super().__init__()
+        for name, field in self._get_fields().items():
             if name in kwargs:
                 field.set_value(kwargs.get(name))
 
     def __setattr__(self, attr, value):
-        if attr in special_attributes:
-            return super().__setattr__(attr, value)
-        field = self.fields.get(attr, None)
+        field = self._get_fields().get(attr, None)
 
         if field is None:
-            raise Exception('field not set')
+            raise errors.FieldNotFound(self, attr)
 
         field.set_value(value)
 
     def update_sync(self, name, value):
-        self._sync_fields[name] = value
+        self._get_sync_fields()[name] = value
 
     def __getattribute__(self, attr):
-        fields = super().__getattribute__('fields')
+        # mimic hasattr
+        try:
+            val = object.__getattribute__(self, attr)
+            if attr in dir(object) or isinstance(val, types.MethodType):
+                return val
+        except AttributeError:
+            pass
 
+        fields = self._get_fields()
         path_split = attr.split('.')
         field_attr = path_split[0]
         field = fields.get(field_attr, None)
 
         if field is None:
-            return super().__getattribute__(attr)
+            raise errors.FieldNotFound(self, attr)
 
         if len(path_split) == 1:
             return field.value
 
         return getattr(field, '.'.join(path_split))
 
-    async def save(self):
+    async def save(self, limit=0):
         """Calling the save method will start a synchronisation process with
         the database. Every change that was made since the last
         synchronisation is considered specifically to only update based on the
@@ -93,6 +104,13 @@ class BaseDocument(object):
         In case that any conflicting fields did update we make sure to pull
         these changes first and only then update them to avoid critical write
         errors.
+
+        :param int limit: optional *(0)* –
+            The maximum amount of tries before a save operation fails.
+            Can be used as a way to catch problematic state or to probe if the
+            current document has changed yet if set to 1.
+
+        :raises RetryLimitReached: Raised if limit is reached
         """
         c = connection.Connection()
         coll = c.database[self.__class__.__name__]
@@ -100,36 +118,46 @@ class BaseDocument(object):
         if self._id is None:
             insert_fields = {
                 name: getattr(self, name)
-                for name in self.fields if name != '_id'
+                for name in self._get_fields() if name != '_id'
             }
             doc = await coll.insert_one({**insert_fields})
             self._id = doc.inserted_id
         else:
-            if len(self._sync_fields) == 0:
+            sync_fields = self._get_sync_fields()
+            if len(sync_fields) == 0:
                 return
 
+            tries = 0
             while True:
                 updates = {
-                    name: getattr(self, name) for name in self._sync_fields
+                    name: getattr(self, name) for name in sync_fields
                 }
                 projection = {'_id': 0}
 
                 result = await coll.update_one(
-                    {'_id': self._id, **self._sync_fields},
+                    {'_id': self._id, **sync_fields},
                     {'$set': updates})
 
                 if result.matched_count == 1:
                     break
 
+                tries += 1
+                if limit != 0 and tries >= limit:
+                    raise errors.RetryLimitReached(limit, self)
+
                 changed_doc = await coll.find_one(
                     {'_id': self._id}, projection=projection)
 
+                fields = self._get_fields()
                 for name, val in changed_doc.items():
-                    self.fields[name].set_value(val)
+                    if name not in sync_fields:
+                        fields[name].value = val
+                    sync_fields[name] = val
 
     def __repr__(self):
         field_rep = ''
-        for name, field in self.fields.items():
+        fields = self._get_fields()
+        for name, field in fields.items():
             if name == '_id' and self._id is None:
                 continue
             field_rep = field_rep + ' {}={}'.format(name, repr(field))

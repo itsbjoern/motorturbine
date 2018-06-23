@@ -12,16 +12,15 @@ class BaseField(object):
     :param bool required: optional *(False)* –
         Defines if the fields value can be None.
     """
-    value = None
-    default = None
-    required = False
 
     def __init__(self, *, default=None, required=False, sync_enabled=True):
-        if default is None and required:
-            self.validate(default)
-
+        super().__init__()
         self.required = required
         self.sync_enabled = sync_enabled
+        self.default = None
+
+        if default is None and required:
+            self.validate(default)
         if default is not None:
             self.default = default
 
