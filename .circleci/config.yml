@@ -16,6 +16,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements-dev.txt
+            cp .circleci/conftest.py tests/conftest.py
       - save_cache:
           key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
           paths:
@@ -37,6 +38,8 @@ jobs:
   test:
     docker:
       - image: circleci/python:3.6.1
+      - image: mongo:3.4
+        command: [mongod, --smallfiles]
     working_directory: ~/repo
     steps:
       - restore_cache:
