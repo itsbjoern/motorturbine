@@ -17,11 +17,11 @@ class Connection(object):
             Connection.instance = Connection.__Connection()
         return Connection.instance
 
-    def __getattr__(self, name):
-        return getattr(self.instance, name)
+    def __getattr__(self, attr):
+        return getattr(self.instance, attr)
 
-    def __setattr__(self, name):
-        return setattr(self.instance, name)
+    def __setattr__(self, attr, value):
+        return setattr(self.instance, attr, value)
 
     @classmethod
     def connect(cls, host='localhost', port=27017, database='motorturbine'):

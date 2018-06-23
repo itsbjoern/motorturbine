@@ -1,5 +1,5 @@
-Document
---------
+Documents
+---------
 Possible ways to create new documents. For now only one way using the BaseDocument class.
 
 .. toctree::
@@ -13,6 +13,13 @@ Fields
    :maxdepth: 2
 
    motorturbine.fields
+
+Querying
+--------
+.. toctree::
+   :maxdepth: 2
+
+   motorturbine.queryset
 
 Connection
 ----------

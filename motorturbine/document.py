@@ -1,8 +1,9 @@
-from . import errors, connection, fields
+from . import errors, collection, fields
 import types
 import copy
 
 
+@collection.Collection
 class BaseDocument(object):
     """The BaseDocument is used to create new Documents
     which can be used to model your data structures.
@@ -69,7 +70,7 @@ class BaseDocument(object):
         field = self._get_fields().get(attr, None)
 
         if field is None:
-            raise errors.FieldNotFound(self, attr)
+            raise errors.FieldNotFound(attr, self)
 
         field.set_value(value)
 
@@ -91,7 +92,7 @@ class BaseDocument(object):
         field = fields.get(field_attr, None)
 
         if field is None:
-            raise errors.FieldNotFound(self, attr)
+            raise errors.FieldNotFound(attr, self)
 
         if len(path_split) == 1:
             return field.value
@@ -114,8 +115,7 @@ class BaseDocument(object):
 
         :raises RetryLimitReached: Raised if limit is reached
         """
-        c = connection.Connection()
-        coll = c.database[self.__class__.__name__]
+        coll = self.__class__._get_collection()
 
         if self._id is None:
             insert_fields = {

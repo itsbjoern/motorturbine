@@ -38,7 +38,7 @@ class TypeMismatch(BaseException):
 
 
 class FieldNotFound(BaseException):
-    """__init__(document, field_name)
+    """__init__(field_name, document)
 
     Is raised when trying to access a property that isn't present as a field.
 
@@ -46,10 +46,10 @@ class FieldNotFound(BaseException):
     Field 'attr' was not found on object \
     <ExampleDocument name='Changed My Name' number=15>.
 
-    :param BaseDocument document:
-        The document that was being accessed.
     :param str field_name:
         Name of the field
+    :param BaseDocument document:
+        The document that was being accessed.
     """
     message = 'Field {!r} was not found on object {!r}.'
 
