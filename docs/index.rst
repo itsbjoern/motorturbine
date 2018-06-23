@@ -11,7 +11,7 @@ Motorturbine is an adapted version of the `Motorengine ORM <https://motorengine.
 .. toctree::
    :maxdepth: 4
 
-   module/modules
+   module/motorturbine
 
 Indices and tables
 ==================
