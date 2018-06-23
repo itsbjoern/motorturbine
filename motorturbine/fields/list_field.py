@@ -16,9 +16,19 @@ class ListWrapper(list):
 
 
 class ListField(base_field.BaseField):
-    def __init__(self, sub_field, default=None):
+    """__init__(*, sub_field, default=None, required=False)
+
+    This field only allows a `list` type to be set as its value.
+
+    If an entire list is set instead of singular values each entry in the new
+    list has to match the subfield that was set when initialising the field.
+
+    :param BaseField sub_field:
+        Sets the field type that will be used for the entires of the list.
+    """
+    def __init__(self, sub_field, default=None, required=False):
         self.sub_field = sub_field
-        super().__init__()
+        super().__init__(default=default, required=required)
         self.value = ListWrapper(list_field=self)
 
     def update_by_index(self, index, value):

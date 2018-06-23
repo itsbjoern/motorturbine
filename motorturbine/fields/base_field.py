@@ -2,6 +2,16 @@ from .. import errors
 
 
 class BaseField(object):
+    """__init__(*, default=None, required=False)
+
+    The base class for any field. Used for connecting to the parent document
+    and calling general methods for setting and validating values.
+
+    :param default: optional *(None)* –
+        Defines a default value based on the field type.
+    :param bool required: optional *(False)* –
+        Defines if the fields value can be None.
+    """
     value = None
     default = None
     required = False
@@ -34,3 +44,6 @@ class BaseField(object):
             return True
 
         return self.validate_field(value)
+
+    def __repr__(self):
+        return repr(self.value)

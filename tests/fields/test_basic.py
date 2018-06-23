@@ -34,3 +34,11 @@ def test_validate_int():
         class FailingDocument(BaseDocument):
             decimal = fields.IntField(default=1.23)
         doc = FailingDocument()
+
+
+def test_str_doc():
+    class StrDoc(BaseDocument):
+        name = fields.StringField(default='test')
+
+    str_doc = StrDoc()
+    assert str_doc.name == 'test'

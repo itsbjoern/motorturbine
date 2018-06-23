@@ -2,6 +2,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 
 class Connection(object):
+    """This singleton is used to connect motor to your database.
+    When initialising your application call :meth:`Connection.connect`
+    and all subsequent operations on the database will be automatically done
+    by the documents.
+    """
     instance = None
 
     class __Connection:
@@ -19,7 +24,13 @@ class Connection(object):
         return setattr(self.instance, name)
 
     @classmethod
-    def connect(cls, host='127.0.0.1', port=27017, database='aiomongoengine'):
+    def connect(cls, host='localhost', port=27017, database='motorturbine'):
+        """Connects motorturbine to your database
+
+        :param str host: optional *('localhost')* –
+        :param int port: optional *(27017)* –
+        :param str database: optional *('motorturbine')* –
+        """
         connection = cls()
         connection.client = AsyncIOMotorClient(host=host, port=port)
         connection.database = connection.client[database]
