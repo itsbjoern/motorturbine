@@ -2,7 +2,7 @@ from .. import errors
 from . import base_field
 
 
-class IntField(base_field.BaseField):
+class BooleanField(base_field.BaseField):
     """__init__(*, default=None, required=False)
 
     This field only allows an `bool` type to be set as its value.

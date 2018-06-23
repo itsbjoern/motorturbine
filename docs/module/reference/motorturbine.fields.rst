@@ -23,6 +23,12 @@ StringField
     :members:
     :show-inheritance:
 
+BooleanField
+------------
+.. autoclass:: motorturbine.fields.BooleanField
+    :members:
+    :show-inheritance:
+
 ObjectIdField
 -------------
 .. autoclass:: motorturbine.fields.ObjectIdField

@@ -13,6 +13,17 @@ def test_int_doc():
     assert int_doc2.num == 6
 
 
+def test_bool_doc():
+    class BooleanDoc(BaseDocument):
+        val = fields.BooleanField(default=False)
+
+    bool_doc = BooleanDoc()
+    assert bool_doc.val is False
+
+    bool_doc2 = BooleanDoc(val=True)
+    assert bool_doc2.val is True
+
+
 def test_validate_int():
     field = fields.IntField(default=5)
     assert field.value == 5
