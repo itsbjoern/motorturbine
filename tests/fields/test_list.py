@@ -51,6 +51,37 @@ async def test_list_doc_update(db_config, database):
 
 
 @pytest.mark.asyncio
+async def test_list_stack(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.ListField(fields.IntField()))
+
+    l = ListDoc()
+    l.nums.append([])
+    l.nums[0].append(5)
+    l.nums[0].append(6)
+
+    l.nums.append([])
+    l.nums[1].append(10)
+
+    await l.save()
+    coll = database['ListDoc']
+    docs = coll.find_one()
+
+    assert docs['nums'][0][0] == 5
+    assert docs['nums'][0][1] == 6
+    assert docs['nums'][1][0] == 10
+
+    l.nums[1][0] = inc(1)
+    await l.save()
+    docs = coll.find_one()
+
+    assert l.nums[1][0] == 11
+    assert docs['nums'][1][0] == 11
+
+
+@pytest.mark.asyncio
 async def test_list_inc(db_config, database):
     connection.Connection.connect(**db_config)
 

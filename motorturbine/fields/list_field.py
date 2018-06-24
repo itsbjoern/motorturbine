@@ -25,12 +25,10 @@ class ListWrapper(list):
         super().__setitem__(index, field)
 
     def to_field(self, index, value):
-        field = self.list_field.sub_field
-        new_field = field.__class__(
-            default=field.default, required=field.required)
-
         name = '{}.{}'.format(self.list_field.name, str(index))
+        new_field = self.list_field.sub_field.clone()
         new_field._connect_document(self.list_field.document, name)
+
         if index < len(self):
             new_field.set_value(self[index])
         new_field.set_value(value)
@@ -65,6 +63,13 @@ class ListField(base_field.BaseField):
         super().__init__(
             default=default, required=required, sync_enabled=sync_enabled)
         self.value = ListWrapper(list_field=self)
+
+    def clone(self):
+        return self.__class__(
+            self.sub_field,
+            default=self.default,
+            required=self.required,
+            sync_enabled=self.sync_enabled)
 
     def push(self, value):
         dc = self.value.copy()
