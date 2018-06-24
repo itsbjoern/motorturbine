@@ -125,3 +125,28 @@ async def test_list_defaults(db_config, database):
     docs = coll.find_one()
 
     assert docs['nums'][0] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_update_multiple(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.IntField())
+
+    l = ListDoc()
+    l.nums.append(5)
+
+    await l.save()
+    assert l.nums[0] == 5
+
+    l.nums[0] = Inc(5)
+    l.nums[0] = Inc(5)
+
+    await l.save()
+    assert l.nums[0] == 15
+
+    coll = database['ListDoc']
+    docs = coll.find_one()
+
+    assert docs['nums'][0] == 15

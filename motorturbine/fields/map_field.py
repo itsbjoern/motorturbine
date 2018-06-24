@@ -36,12 +36,16 @@ class DictWrapper(dict):
         if old_field is not None:
             new_field.set_value(old_field.value)
             new_field.synced()
+
+            # new_field.operator = old_field.operator
         new_field.set_value(value)
         return new_field
 
     def __getitem__(self, index):
         item = super().__getitem__(index)
-        return item.value
+        if hasattr(item, 'value'):
+            item = item.value
+        return item
 
 
 class MapField(base_field.BaseField):
@@ -88,6 +92,13 @@ class MapField(base_field.BaseField):
     def set_index(self, name, value):
         return
         self.operator = updateset.Set(dc)
+
+    def synced(self):
+        super().synced()
+
+        for name in self.value:
+            field = dict.__getitem__(self.value, name)
+            field.synced()
 
     def set_value(self, new_value):
         old_val = self.value.copy()

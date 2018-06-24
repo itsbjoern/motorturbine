@@ -51,7 +51,7 @@ When all transformations are done objects can be inserted into the database by c
 Querying objects
 ----------------
 
-Lastly, the created collections (or document classes) can be queried by using a :class:`~motorturbine.queryset.QueryOperator`.
+The created collections (or document classes) can be queried by using a :class:`~motorturbine.queryset.QueryOperator`.
 
 .. code-block:: python
 
@@ -60,3 +60,22 @@ Lastly, the created collections (or document classes) can be queried by using a 
         return oldies
 
 In this example :class:`motorturbine.queryset.Gte` is used to look for all entries with `Person.age` >= 60.
+
+
+Updating fields
+---------------
+
+Once everything is set up, instead of just setting values directly there is a fancier way to update your fields by utilising mongos inbuilt atomic update capabilities.
+
+Values that are updated this way don't need to match their old state since they just add to the state instead of completely changing it.
+
+.. caution:: The inherit properties of update operations restrict using it multiple times without saving the document. See :class:`~motorturbine.updateset.UpdateOperator` for more information about this.
+
+.. code-block:: python
+
+    async def happy_birthday(person):
+        person.age = Inc(1)
+        await person.save()
+
+In this example the :class:`motorturbine.updateset.Inc` operator is used to increase the persons age by one year.
+For more information about updating see :class:`~motorturbine.updateset.UpdateOperator`.

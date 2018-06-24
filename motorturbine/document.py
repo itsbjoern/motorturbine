@@ -54,19 +54,20 @@ class BaseDocument(object):
 
         return doc
 
-    def _get_fields(self):
-        return object.__getattribute__(self, '_fields')
-
-    def _get_sync_fields(self):
-        return object.__getattribute__(self, '_sync_fields')
-
     def __init__(self, **kwargs):
         super().__init__()
         for name, field in self._get_fields().items():
             if name in kwargs:
                 field.set_value(kwargs.get(name))
+                field.synced()
             else:
                 field.validate(field.default)
+
+    def _get_fields(self):
+        return object.__getattribute__(self, '_fields')
+
+    def _get_sync_fields(self):
+        return object.__getattribute__(self, '_sync_fields')
 
     def __setattr__(self, attr, value):
         field = self._get_fields().get(attr, None)
@@ -146,6 +147,9 @@ class BaseDocument(object):
                     split = path.split('.')
                     name = split[0]
                     val = fields[name].get_operator('.'.join(split[1:]))
+                    if val is None:
+                        continue
+
                     assert isinstance(val, updateset.UpdateOperator)
 
                     op, value = val()

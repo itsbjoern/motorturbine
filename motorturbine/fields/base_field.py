@@ -49,16 +49,24 @@ class BaseField(object):
         new_operator = self.to_operator(new_value)
         new_operator.set_original_value(old_val)
 
-        same_operator = isinstance(new_operator, self.operator.__class__)
-        if self.operator is not None and not same_operator:
-            if not isinstance(new_operator, updateset.Set):
-                raise Exception(
-                    'Cant use multiple UpdateOperators without saving')
+        if self.operator is not None:
+            is_set = isinstance(new_operator, updateset.Set)
+            if not is_set:
+                same_operator = isinstance(
+                    new_operator, self.operator.__class__)
+                if not same_operator:
+                    raise Exception(
+                        'Cant use multiple UpdateOperators without saving')
+                else:
+                    new_operator.set_original_value(
+                        self.operator.original_value)
+                    self.operator.set_original_value(new_operator.update)
+                    new_operator.update = self.operator.apply()
 
         new_value = new_operator.apply()
         self.validate(new_value)
-        self.operator = new_operator
 
+        self.operator = new_operator
         self.value = new_value
 
         if self.sync_enabled:

@@ -112,3 +112,21 @@ async def test_map_defaults(db_config, database):
 
     doc = coll.find_one({'_id': m2._id})
     assert doc['mapping'] == {'x': 5}
+
+
+@pytest.mark.asyncio
+async def test_map_defaults(db_config, database):
+    connection.Connection.connect(**db_config)
+    coll = database['MapDoc']
+    class MapDoc(BaseDocument):
+        mapping = fields.MapField(
+            fields.IntField())
+
+    m = MapDoc(mapping={'x': 5})
+    await m.save()
+
+    m.mapping['x'] = Inc(5)
+    await m.save()
+
+    doc = coll.find_one()
+    assert doc['mapping']['x'] == 10

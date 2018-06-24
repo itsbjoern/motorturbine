@@ -22,7 +22,7 @@ class ListWrapper(list):
         field = self.to_field(index, value)
         old_value = super().__getitem__(index).value
         self.list_field.set_index(index, old_value)
-        super().__setitem__(index, field)
+        list.__setitem__(self, index, field)
 
     def to_field(self, index, value):
         name = '{}.{}'.format(self.list_field.name, str(index))
@@ -30,8 +30,11 @@ class ListWrapper(list):
         new_field._connect_document(self.list_field.document, name)
 
         if index < len(self):
-            new_field.set_value(self[index])
+            field = list.__getitem__(self, index)
+            new_field.set_value(field.value)
             new_field.synced()
+
+            new_field.operator = field.operator
         new_field.set_value(value)
         return new_field
 
@@ -41,7 +44,7 @@ class ListWrapper(list):
     def append(self, value):
         field = self.to_field(len(self), value)
         self.list_field.push(value)
-        super().append(field)
+        list.append(self, field)
 
     def __getitem__(self, index):
         item = super().__getitem__(index)
@@ -91,11 +94,12 @@ class ListField(base_field.BaseField):
         self.operator = updateset.Set(dc)
 
     def synced(self):
-        self.operator = None
+        super().synced()
 
-        fields = object.__getattribute__(self, 'value')
-        for field in fields:
-            field.synced()
+        for index in range(len(self.value)):
+            field = list.__getitem__(self.value, index)
+            if hasattr(field, 'synced'):
+                field.synced()
 
     def set_value(self, new_value):
         old_val = self.value.copy()
