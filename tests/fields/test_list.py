@@ -1,6 +1,6 @@
 import pytest
 from motorturbine import BaseDocument, fields, errors, connection
-from motorturbine.updateset import inc
+from motorturbine.updateset import Inc
 
 
 @pytest.mark.asyncio
@@ -73,7 +73,7 @@ async def test_list_stack(db_config, database):
     assert docs['nums'][0][1] == 6
     assert docs['nums'][1][0] == 10
 
-    l.nums[1][0] = inc(1)
+    l.nums[1][0] = Inc(1)
     await l.save()
     docs = coll.find_one()
 
@@ -95,7 +95,7 @@ async def test_list_inc(db_config, database):
 
     await l.save()
 
-    l.nums[0] = inc(5)
+    l.nums[0] = Inc(5)
 
     await l.save()
     coll = database['ListDoc']
@@ -118,7 +118,7 @@ async def test_list_defaults(db_config, database):
 
     await l.save()
 
-    l.nums[0] = inc(5)
+    l.nums[0] = Inc(5)
 
     await l.save()
     coll = database['ListDoc']

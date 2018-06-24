@@ -31,6 +31,7 @@ class ListWrapper(list):
 
         if index < len(self):
             new_field.set_value(self[index])
+            new_field.synced()
         new_field.set_value(value)
         return new_field
 
@@ -77,22 +78,35 @@ class ListField(base_field.BaseField):
     def push(self, value):
         return
         dc = self.value.copy()
-        self.operator = updateset.setval(dc)
+        self.operator = updateset.Set(dc)
 
     def pull(self, index):
         return
         dc = self.value.copy()
-        self.operator = updateset.setval(dc)
+        self.operator = updateset.Set(dc)
 
     def set_index(self, index, value):
         return
         dc = self.value.copy()
-        self.operator = updateset.setval(dc)
+        self.operator = updateset.Set(dc)
+
+    def synced(self):
+        self.operator = None
+
+        fields = object.__getattribute__(self, 'value')
+        for field in fields:
+            field.synced()
 
     def set_value(self, new_value):
         old_val = self.value.copy()
         new_operator = self.to_operator(new_value)
         new_operator.set_original_value(old_val)
+
+        same_operator = isinstance(new_operator, self.operator.__class__)
+        if self.operator is not None and not same_operator:
+            if not isinstance(new_operator, updateset.Set):
+                raise Exception(
+                    'Cant use multiple UpdateOperators without saving')
 
         new_value = new_operator.apply()
         self.validate(new_value)

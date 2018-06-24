@@ -8,32 +8,39 @@ Possible ways to create new documents. For now only one way using the BaseDocume
 .. toctree::
    :maxdepth: 2
 
-   motorturbine.document
+   document
 
 Fields
 ------
 .. toctree::
    :maxdepth: 2
 
-   motorturbine.fields
+   fields
 
 Querying
 --------
 .. toctree::
    :maxdepth: 2
 
-   motorturbine.queryset
+   queryset
+
+Updating
+--------
+.. toctree::
+   :maxdepth: 2
+
+   updateset
 
 Connection
 ----------
 .. toctree::
    :maxdepth: 2
 
-   motorturbine.connection
+   connection
 
 Errors
 ------
 .. toctree::
    :maxdepth: 2
 
-   motorturbine.errors
+   errors

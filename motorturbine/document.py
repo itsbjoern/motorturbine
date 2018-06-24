@@ -123,6 +123,7 @@ class BaseDocument(object):
         """
         coll = self.__class__._get_collection()
         fields = self._get_fields()
+        sync_fields = self._get_sync_fields()
         if self._id is None:
             insert_fields = {
                 name: getattr(self, name)
@@ -131,8 +132,10 @@ class BaseDocument(object):
 
             doc = await coll.insert_one({**insert_fields})
             self._id = doc.inserted_id
+            for field in fields.values():
+                sync_fields.clear()
+                field.synced()
         else:
-            sync_fields = self._get_sync_fields()
             if len(sync_fields) == 0:
                 return
 
@@ -156,6 +159,9 @@ class BaseDocument(object):
 
                 if result.matched_count == 1:
                     sync_fields.clear()
+
+                    for field in fields.values():
+                        field.synced()
                     break
 
                 tries += 1
@@ -165,7 +171,6 @@ class BaseDocument(object):
                 changed_doc = await coll.find_one(
                     {'_id': self._id}, projection=projection)
 
-                fields = self._get_fields()
                 for name, val in changed_doc.items():
                     for path in sync_fields:
                         item = utils.item_by_path(changed_doc, path)

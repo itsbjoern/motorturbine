@@ -41,10 +41,19 @@ class BaseField(object):
             required=self.required,
             sync_enabled=self.sync_enabled)
 
+    def synced(self):
+        self.operator = None
+
     def set_value(self, new_value):
         old_val = self.value
         new_operator = self.to_operator(new_value)
         new_operator.set_original_value(old_val)
+
+        same_operator = isinstance(new_operator, self.operator.__class__)
+        if self.operator is not None and not same_operator:
+            if not isinstance(new_operator, updateset.Set):
+                raise Exception(
+                    'Cant use multiple UpdateOperators without saving')
 
         new_value = new_operator.apply()
         self.validate(new_value)

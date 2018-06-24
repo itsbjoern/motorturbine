@@ -6,14 +6,14 @@ class QueryBuilder(dict):
         result = {}
         for name, op in self.items():
             if not isinstance(op, QueryOperator):
-                op = eq(op)
+                op = Eq(op)
 
             result[name] = op()
         return result
 
 
 class QueryOperator(object):
-    """QueryOperator can be used to automatically generate
+    """QueryOperators can be used to automatically generate
     queries that are understood by mongo. Each of the operators
     can be used as defined in the mongo manual as they're just
     a direct mapping.
@@ -27,134 +27,132 @@ class QueryOperator(object):
         self.requires_sync = requires_sync
 
 
-class eq(QueryOperator):
+class Eq(QueryOperator):
     """Checks for any value that is equal to the given value.
-    Not using it is functionally the same as just leaving out
-    a QueryOperator completely.
+     Not using it is the default case and functionally the same
+    as just leaving out a QueryOperator completely.
 
     Example usage:
 
     >>> await Document.get_objects(num=5)
-    >>> await Document.get_objects(num=eq(5))
+    >>> await Document.get_objects(num=Eq(5))
 
     Query:
 
-    >>> eq(5)()
+    >>> Eq(5)()
     {'$eq': 5}
     """
     def __call__(self):
         return {'$eq': self.value}
 
 
-class ne(QueryOperator):
+class Ne(QueryOperator):
     """Checks for any value that is not equal to the given value.
 
     Example usage:
 
-    >>> await Document.get_objects(num=neq(5))
+    >>> await Document.get_objects(num=Ne(5))
 
     Query:
 
-    >>> neq(5)()
-    {'$neq': 5}
+    >>> Ne(5)()
+    {'$ne': 5}
     """
     def __call__(self):
         return {'$ne': self.value}
 
 
-class lt(QueryOperator):
+class Lt(QueryOperator):
     """Checks for any value that is lesser than the given value.
 
     Example usage:
 
-    >>> await Document.get_objects(num=lt(5))
+    >>> await Document.get_objects(num=Lt(5))
 
     Query:
 
-    >>> lt(5)()
+    >>> Lt(5)()
     {'$lt': 5}
     """
     def __call__(self):
         return {'$lt': self.value}
 
 
-class lte(QueryOperator):
+class Lte(QueryOperator):
     """Checks for any value that is lesser than or equal to
     the given value.
 
     Example usage:
 
-    >>> await Document.get_objects(num=lte(5))
+    >>> await Document.get_objects(num=Lte(5))
 
     Query:
 
-    >>> lte(5)()
+    >>> Lte(5)()
     {'$lte': 5}
     """
     def __call__(self):
         return {'$lte': self.value}
 
 
-class gt(QueryOperator):
+class Gt(QueryOperator):
     """Checks for any value that is greater than the given value.
 
     Example usage:
 
-    >>> await Document.get_objects(num=gt(5))
+    >>> await Document.get_objects(num=Gt(5))
 
     Query:
 
-    >>> gt(5)()
+    >>> Gt(5)()
     {'$gt': 5}
     """
     def __call__(self):
         return {'$gt': self.value}
 
 
-class gte(QueryOperator):
+class Gte(QueryOperator):
     """Checks for any value that is greater than or equal to the given value.
 
     Example usage:
 
-    >>> await Document.get_objects(num=gte(5))
+    >>> await Document.get_objects(num=Gte(5))
 
     Query:
 
-    >>> gte(5)()
+    >>> Gte(5)()
     {'$gte': 5}
     """
     def __call__(self):
         return {'$gte': self.value}
 
 
-class isin(QueryOperator):
+class In(QueryOperator):
     """Checks for any value that is included in the given value.
-    To enable usage as a direct import the mongo operator 'in'
-    was renamed to 'isin'.
 
     Example usage:
 
-    >>> await Document.get_objects(num=isin([1, 4, 5]))
+    >>> await Document.get_objects(num=In([1, 4, 5]))
 
     Query:
 
-    >>> isin([1, 4, 5])()
+    >>> In([1, 4, 5])()
     {'$in': [1, 4, 5]}
     """
     def __call__(self):
         return {'$in': self.value}
 
 
-class nin(QueryOperator):
+class Nin(QueryOperator):
     """Checks for any value that is not included in the given value.
 
     Example usage:
 
-    >>> await Document.get_objects(num=nin([1, 4, 5]))
+    >>> await Document.get_objects(num=Nin([1, 4, 5]))
 
     Query:
 
-    >>> nin([1, 4, 5])()
+    >>> Nin([1, 4, 5])()
     {'$nin': [1, 4, 5]}
     """
     def __call__(self):

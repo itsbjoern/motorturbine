@@ -1,6 +1,6 @@
 import pytest
 from motorturbine import BaseDocument, fields, errors, connection
-from motorturbine.queryset import eq, lt, lte, gt, gte, isin, nin
+from motorturbine.queryset import Eq, Ne, Lt, Lte, Gt, Gte, In, Nin
 
 
 @pytest.mark.asyncio
@@ -22,20 +22,20 @@ async def test_query(db_config):
     doc2 = Document(num=10)
     await doc2.save()
 
-    found = await Document.get_objects(num=lt(10))
+    found = await Document.get_objects(num=Lt(10))
     assert len(found) == 1
 
-    found = await Document.get_objects(num=lte(10))
+    found = await Document.get_objects(num=Lte(10))
     assert len(found) == 2
 
-    found = await Document.get_objects(num=gt(6))
+    found = await Document.get_objects(num=Gt(6))
     assert len(found) == 1
 
-    found = await Document.get_objects(num=gte(6))
+    found = await Document.get_objects(num=Gte(6))
     assert len(found) == 2
 
-    found = await Document.get_objects(num=isin([1, 3, 6]))
+    found = await Document.get_objects(num=In([1, 3, 6]))
     assert len(found) == 1
 
-    found = await Document.get_objects(num=nin([6, 10]))
+    found = await Document.get_objects(num=Nin([6, 10]))
     assert len(found) == 0

@@ -1,6 +1,7 @@
 import pytest
 from motorturbine import BaseDocument, fields, errors, connection
-from motorturbine.updateset import inc
+from motorturbine.updateset import Inc
+
 
 @pytest.mark.asyncio
 async def test_map_doc(db_config, database):
@@ -103,7 +104,7 @@ async def test_map_defaults(db_config, database):
     doc = coll.find_one()
     assert doc['mapping'] == {'x': 5}
 
-    m.mapping['x'] = inc(3)
+    m.mapping['x'] = Inc(3)
     await m.save()
 
     m2 = MapDoc()

@@ -35,7 +35,7 @@ class DictWrapper(dict):
         old_field = self.get(key, None)
         if old_field is not None:
             new_field.set_value(old_field.value)
-
+            new_field.synced()
         new_field.set_value(value)
         return new_field
 
@@ -87,12 +87,18 @@ class MapField(base_field.BaseField):
 
     def set_index(self, name, value):
         return
-        self.operator = updateset.setval(dc)
+        self.operator = updateset.Set(dc)
 
     def set_value(self, new_value):
         old_val = self.value.copy()
         new_operator = self.to_operator(new_value)
         new_operator.set_original_value(old_val)
+
+        same_operator = isinstance(new_operator, self.operator.__class__)
+        if self.operator is not None and not same_operator:
+            if not isinstance(new_operator, updateset.Set):
+                raise Exception(
+                    'Cant use multiple UpdateOperators without saving')
 
         new_value = new_operator.apply()
         self.validate(new_value)

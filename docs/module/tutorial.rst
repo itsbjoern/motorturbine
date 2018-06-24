@@ -56,7 +56,7 @@ Lastly, the created collections (or document classes) can be queried by using a 
 .. code-block:: python
 
     async def get_sixty_plus():
-        oldies = await Person.get_objects(age=gte(60))
+        oldies = await Person.get_objects(age=Gte(60))
         return oldies
 
-In this example :class:`motorturbine.queryset.gte` is used to look for all entries with `Person.age` >= 60.
+In this example :class:`motorturbine.queryset.Gte` is used to look for all entries with `Person.age` >= 60.
