@@ -118,6 +118,7 @@ async def test_map_defaults(db_config, database):
 async def test_map_defaults(db_config, database):
     connection.Connection.connect(**db_config)
     coll = database['MapDoc']
+
     class MapDoc(BaseDocument):
         mapping = fields.MapField(
             fields.IntField())
