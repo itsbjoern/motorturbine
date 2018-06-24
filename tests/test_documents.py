@@ -78,3 +78,17 @@ async def test_repr(db_config, database):
     id_str = '_id=ObjectId(\'{}\') '.format(test._id)
     post_save = result.format(id_str)
     assert repr(test) == post_save
+
+
+@pytest.mark.asyncio
+async def test_required(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class IntDoc(BaseDocument):
+        num = fields.IntField(required=True)
+
+    int_doc = IntDoc(num=10)
+    assert int_doc.num == 10
+
+    with pytest.raises(errors.TypeMismatch):
+        int_doc2 = IntDoc()

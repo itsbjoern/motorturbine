@@ -34,6 +34,9 @@ class BaseDocument(object):
         object.__setattr__(doc, '_fields', {})
         doc_fields = object.__getattribute__(doc, '_fields')
 
+        # add attribute for syncs
+        object.__setattr__(doc, '_sync_fields', {})
+
         # create general _id field
         id_field = fields.ObjectIdField(sync_enabled=False)
         id_field._connect_document(doc, '_id')
@@ -49,9 +52,6 @@ class BaseDocument(object):
                 field._connect_document(doc, name)
                 doc_fields[name] = field
 
-        # add attribute for syncs
-        object.__setattr__(doc, '_sync_fields', {})
-
         return doc
 
     def _get_fields(self):
@@ -65,6 +65,8 @@ class BaseDocument(object):
         for name, field in self._get_fields().items():
             if name in kwargs:
                 field.set_value(kwargs.get(name))
+            else:
+                field.validate(field.default)
 
     def __setattr__(self, attr, value):
         field = self._get_fields().get(attr, None)
@@ -126,7 +128,7 @@ class BaseDocument(object):
                 name: getattr(self, name)
                 for name in fields if name != '_id'
             }
-            print(insert_fields)
+
             doc = await coll.insert_one({**insert_fields})
             self._id = doc.inserted_id
         else:
@@ -166,35 +168,11 @@ class BaseDocument(object):
                 fields = self._get_fields()
                 for name, val in changed_doc.items():
                     for path in sync_fields:
-                        item = self.item_by_path(changed_doc, path)
+                        item = utils.item_by_path(changed_doc, path)
                         if item is not None:
                             sync_fields[path] = item
-
                     # if needs_update:
                     #     fields[name] = val
-
-    def item_by_path(self, container, path):
-        split = path.split('.')
-        index = split[0]
-
-        if isinstance(container, list):
-            if not index.isdigit():
-                return None
-
-            index = int(index)
-            if len(container) < index:
-                return None
-            container = container[index]
-        else:
-            container = container.get(index, None)
-
-        if container is None:
-            return None
-
-        if len(split) == 1:
-            return container
-
-        return self.item_by_path(container, '.'.join(split[1:]))
 
     def __repr__(self):
         field_rep = ''

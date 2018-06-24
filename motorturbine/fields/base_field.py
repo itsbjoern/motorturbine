@@ -22,13 +22,14 @@ class BaseField(object):
         self.default = None
         self.operator = None
 
-        if default is None and required:
-            self.validate(default)
         if default is not None:
             self.default = default
 
+        # set value directly and use validate_field
+        # instead of validate to avoid required check
         self.value = self.default
-        self.validate(self.value)
+        if self.value is not None:
+            self.validate_field(self.value)
 
     def _connect_document(self, document, name):
         self.document = document

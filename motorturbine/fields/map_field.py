@@ -5,30 +5,43 @@ import copy
 
 class DictWrapper(dict):
     def __init__(self, *args, dict_field=None, **kwargs):
-        object.__setattr__(self, 'dict_field', dict_field)
+        self.dict_field = dict_field
         super().__init__(*args, **kwargs)
 
+    def update(self, values):
+        if values is None:
+            return
+
+        self.dict_field.validate(values)
+        for key, value in values.items():
+            self[key] = value
+
     def __setitem__(self, key, value):
-        old_value = super().get(key, None)
-        value = updateset.to_operator(old_value, value)
-        if old_value is not None:
-            old_value = old_value.apply()
-
-        value.set_original_value(old_value)
         self.dict_field.validate_key(key)
-        print(key)
-        print(value.apply())
-        self.dict_field.validate_value(value.apply())
 
-        super().__setitem__(key, value)
-        self.dict_field.update_by_name(key, old_value)
+        field = self.to_field(key, value)
+        old_value = dict.get(self, key, None)
 
-    def __getitem__(self, key):
-        val = super().get(key, None)
-        print(val)
-        if val is None:
-            return None
-        return val.apply()
+        if old_value is not None:
+            old_value = old_value.value
+        self.dict_field.set_index(key, old_value)
+        super().__setitem__(key, field)
+
+    def to_field(self, key, value):
+        name = '{}.{}'.format(self.dict_field.name, key)
+        new_field = self.dict_field.value_field.clone()
+        new_field._connect_document(self.dict_field.document, name)
+
+        old_field = self.get(key, None)
+        if old_field is not None:
+            new_field.set_value(old_field.value)
+
+        new_field.set_value(value)
+        return new_field
+
+    def __getitem__(self, index):
+        item = super().__getitem__(index)
+        return item.value
 
 
 class MapField(base_field.BaseField):
@@ -58,36 +71,48 @@ class MapField(base_field.BaseField):
         self.value_field = value_field
         super().__init__(
             default=default, required=required, sync_enabled=sync_enabled)
-        self.value = updateset.setval(DictWrapper(dict_field=self))
-        # TODO: Default
+        self.value = DictWrapper(dict_field=self)
 
-    def update_by_name(self, name, value):
-        self.document.update_sync('{}.{}'.format(self.name, name), value)
+    def _connect_document(self, document, name):
+        super()._connect_document(document, name)
+        self.value.update(self.default)
+
+    def clone(self):
+        return self.__class__(
+            self.value_field,
+            key_field=self.key_field,
+            default=self.default,
+            required=self.required,
+            sync_enabled=self.sync_enabled)
+
+    def set_index(self, name, value):
+        return
+        self.operator = updateset.setval(dc)
 
     def set_value(self, new_value):
-        print(self.name, new_value)
-        new_value = self.to_operator(new_value)
+        old_val = self.value.copy()
+        new_operator = self.to_operator(new_value)
+        new_operator.set_original_value(old_val)
 
-        old_val = None
-        if self.value is not None:
-            old_val = self.value.apply()
-        old_val = copy.deepcopy(old_val)
+        new_value = new_operator.apply()
+        self.validate(new_value)
+        self.operator = new_operator
 
-        new_value.set_original_value(old_val)
+        self.value.clear()
+        self.value.update(new_value)
 
-        applied = new_value.apply()
-        self.validate(applied)
-        self.value = updateset.setval(DictWrapper(dict_field=self, **applied))
-        self.document.update_sync(name, old_val)
+    def get_operator(self, path):
+        split = path.split('.')
+        field = dict.get(self.value, split[0])
+        return field.get_operator('.'.join(split[1:]))
 
     def __getattr__(self, attr):
         path_split = attr.split('.')
         field_name = path_split[0]
         if len(path_split) == 1:
-            return super().__getattr__(attr)
+            return super().__getattribute__(attr)
 
-        current = self.value.update
-        return current[path_split[1]]
+        return self.value[path_split[1]]
 
     def validate_field(self, value):
         if not isinstance(value, dict):

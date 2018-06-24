@@ -102,3 +102,26 @@ async def test_list_inc(db_config, database):
     docs = coll.find_one()
 
     assert docs['nums'][0] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_defaults(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.IntField())
+
+    l = ListDoc()
+    l.nums.append(5)
+    l.nums.append(6)
+    l.nums.append(7)
+
+    await l.save()
+
+    l.nums[0] = inc(5)
+
+    await l.save()
+    coll = database['ListDoc']
+    docs = coll.find_one()
+
+    assert docs['nums'][0] == 10

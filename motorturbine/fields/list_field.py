@@ -43,7 +43,10 @@ class ListWrapper(list):
         super().append(field)
 
     def __getitem__(self, index):
-        return super().__getitem__(index).value
+        item = super().__getitem__(index)
+        if hasattr(item, 'value'):
+            item = item.value
+        return item
 
 
 class ListField(base_field.BaseField):
@@ -72,14 +75,17 @@ class ListField(base_field.BaseField):
             sync_enabled=self.sync_enabled)
 
     def push(self, value):
+        return
         dc = self.value.copy()
         self.operator = updateset.setval(dc)
 
     def pull(self, index):
+        return
         dc = self.value.copy()
         self.operator = updateset.setval(dc)
 
     def set_index(self, index, value):
+        return
         dc = self.value.copy()
         self.operator = updateset.setval(dc)
 
