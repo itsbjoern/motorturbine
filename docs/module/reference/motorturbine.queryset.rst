@@ -1,6 +1,6 @@
-QueryBlock
+QueryOperator
 ----------
-.. autoclass:: motorturbine.queryset.QueryBlock
+.. autoclass:: motorturbine.queryset.QueryOperator
     :members:
 
     .. note:: Please note that because of the overlap in keywords Motorturbine opted to substitute 'in' with :class:`~isin`!

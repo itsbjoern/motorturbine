@@ -1,4 +1,4 @@
-from . import errors, collection, fields
+from . import errors, collection, fields, updateset, utils
 import types
 import copy
 
@@ -75,7 +75,8 @@ class BaseDocument(object):
         field.set_value(value)
 
     def update_sync(self, name, value):
-        self._get_sync_fields()[name] = value
+        sync_fields = self._get_sync_fields()
+        sync_fields.setdefault(name, value)
 
     def __getattribute__(self, attr):
         # mimic hasattr
@@ -97,7 +98,7 @@ class BaseDocument(object):
         if len(path_split) == 1:
             return field.value
 
-        return getattr(field, '.'.join(path_split))
+        return getattr(field, '.'.join(path_split[1:]))
 
     async def save(self, limit=0):
         """Calling the save method will start a synchronisation process with
@@ -119,12 +120,13 @@ class BaseDocument(object):
         :raises RetryLimitReached: Raised if limit is reached
         """
         coll = self.__class__._get_collection()
-
+        fields = self._get_fields()
         if self._id is None:
             insert_fields = {
                 name: getattr(self, name)
-                for name in self._get_fields() if name != '_id'
+                for name in fields if name != '_id'
             }
+            print(insert_fields)
             doc = await coll.insert_one({**insert_fields})
             self._id = doc.inserted_id
         else:
@@ -134,16 +136,24 @@ class BaseDocument(object):
 
             tries = 0
             while True:
-                updates = {
-                    name: getattr(self, name) for name in sync_fields
-                }
+                updates = {}
+                for path in sync_fields:
+                    split = path.split('.')
+                    name = split[0]
+                    val = fields[name].get_operator('.'.join(split[1:]))
+                    assert isinstance(val, updateset.UpdateOperator)
+
+                    op, value = val()
+                    update = {op: {path: value}}
+                    updates = utils.deep_merge(updates, update)
                 projection = {'_id': 0}
 
                 result = await coll.update_one(
                     {'_id': self._id, **sync_fields},
-                    {'$set': updates})
+                    updates)
 
                 if result.matched_count == 1:
+                    sync_fields.clear()
                     break
 
                 tries += 1
@@ -155,9 +165,36 @@ class BaseDocument(object):
 
                 fields = self._get_fields()
                 for name, val in changed_doc.items():
-                    if name not in sync_fields:
-                        fields[name].value = val
-                    sync_fields[name] = val
+                    for path in sync_fields:
+                        item = self.item_by_path(changed_doc, path)
+                        if item is not None:
+                            sync_fields[path] = item
+
+                    # if needs_update:
+                    #     fields[name] = val
+
+    def item_by_path(self, container, path):
+        split = path.split('.')
+        index = split[0]
+
+        if isinstance(container, list):
+            if not index.isdigit():
+                return None
+
+            index = int(index)
+            if len(container) < index:
+                return None
+            container = container[index]
+        else:
+            container = container.get(index, None)
+
+        if container is None:
+            return None
+
+        if len(split) == 1:
+            return container
+
+        return self.item_by_path(container, '.'.join(split[1:]))
 
     def __repr__(self):
         field_rep = ''

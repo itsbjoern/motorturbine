@@ -1,18 +1,51 @@
-from .. import errors
+from .. import errors, updateset, utils
 from . import base_field
 import copy
 
 
 class ListWrapper(list):
     def __init__(self, *args, list_field=None, **kwargs):
-        object.__setattr__(self, 'list_field', list_field)
+        self.list_field = list_field
         super().__init__(*args, **kwargs)
 
+    def __contains__(self, value):
+        for field in self:
+            if field.value == value:
+                return True
+        return False
+
+    def __delitem__(self, index):
+        self.list_field.pull(index)
+        super().__delitem__(index)
+
     def __setitem__(self, index, value):
-        self.list_field.validate(value)
-        old_value = super().__getitem__(index)
-        super().__setitem__(index, value)
-        self.list_field.update_by_index(index, old_value)
+        field = self.to_field(index, value)
+        old_value = super().__getitem__(index).value
+        self.list_field.set_index(index, old_value)
+        super().__setitem__(index, field)
+
+    def to_field(self, index, value):
+        field = self.list_field.sub_field
+        new_field = field.__class__(
+            default=field.default, required=field.required)
+
+        name = '{}.{}'.format(self.list_field.name, str(index))
+        new_field._connect_document(self.list_field.document, name)
+        if index < len(self):
+            new_field.set_value(self[index])
+        new_field.set_value(value)
+        return new_field
+
+    def copy(self):
+        return [item.value for item in self]
+
+    def append(self, value):
+        field = self.to_field(len(self), value)
+        self.list_field.push(value)
+        super().append(field)
+
+    def __getitem__(self, index):
+        return super().__getitem__(index).value
 
 
 class ListField(base_field.BaseField):
@@ -26,34 +59,57 @@ class ListField(base_field.BaseField):
     :param BaseField sub_field:
         Sets the field type that will be used for the entires of the list.
     """
-    def __init__(self, sub_field, default=None, required=False):
+    def __init__(
+            self, sub_field, default=None, required=False, sync_enabled=True):
         self.sub_field = sub_field
-        super().__init__(default=default, required=required)
+        super().__init__(
+            default=default, required=required, sync_enabled=sync_enabled)
         self.value = ListWrapper(list_field=self)
 
-    def update_by_index(self, index, value):
-        self.document.update_sync('{}.{}'.format(self.name, index), value)
+    def push(self, value):
+        dc = self.value.copy()
+        self.operator = updateset.setval(dc)
 
-    def set_value(self, value):
-        if not isinstance(value, list):
-            raise errors.TypeMismatch(list, value)
+    def pull(self, index):
+        dc = self.value.copy()
+        self.operator = updateset.setval(dc)
 
-        for item in value:
-            self.validate(item)
-        old_val = copy.deepcopy(self.value)
-        sync_val = {}
+    def set_index(self, index, value):
+        dc = self.value.copy()
+        self.operator = updateset.setval(dc)
+
+    def set_value(self, new_value):
+        old_val = self.value.copy()
+        new_operator = self.to_operator(new_value)
+        new_operator.set_original_value(old_val)
+
+        new_value = new_operator.apply()
+        self.validate(new_value)
+        self.operator = new_operator
+
         self.value.clear()
-        self.value.extend(value)
-        self.document.update_sync(name, old_val)
+        self.value.extend(new_value)
+
+        # if self.sync_enabled:
+        #     self.document.update_sync(self.name, old_val)
+
+    def get_operator(self, path):
+        split = path.split('.')
+        field = list.__getitem__(self.value, int(split[0]))
+        return field.get_operator('.'.join(split[1:]))
 
     def __getattr__(self, attr):
         path_split = attr.split('.')
         field_attr = path_split[0]
 
         if len(path_split) == 1:
-            return super().__getattr__(attr)
+            return self.__getattribute__(attr)
 
         return self.value[int(path_split[1])]
 
     def validate_field(self, value):
-        return self.sub_field.validate(value)
+        if not isinstance(value, list):
+            raise errors.TypeMismatch(list, value)
+
+        for item in value:
+            self.sub_field.validate(item)

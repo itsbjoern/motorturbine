@@ -51,7 +51,7 @@ When all transformations are done objects can be inserted into the database by c
 Querying objects
 ----------------
 
-Lastly, the created collections (or document classes) can be queried by using a :class:`~motorturbine.queryset.QueryBlock`.
+Lastly, the created collections (or document classes) can be queried by using a :class:`~motorturbine.queryset.QueryOperator`.
 
 .. code-block:: python
 

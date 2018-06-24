@@ -1,4 +1,4 @@
-from .. import errors
+from .. import errors, updateset
 
 
 class BaseField(object):
@@ -20,6 +20,7 @@ class BaseField(object):
         self.required = required
         self.sync_enabled = sync_enabled
         self.default = None
+        self.operator = None
 
         if default is None and required:
             self.validate(default)
@@ -33,12 +34,25 @@ class BaseField(object):
         self.document = document
         self.name = name
 
-    def set_value(self, value):
-        self.validate(value)
+    def to_operator(self, value):
+        return updateset.to_operator(self.value, value)
+
+    def set_value(self, new_value):
         old_val = self.value
-        self.value = value
+        new_operator = self.to_operator(new_value)
+        new_operator.set_original_value(old_val)
+
+        new_value = new_operator.apply()
+        self.validate(new_value)
+        self.operator = new_operator
+
+        self.value = new_value
+
         if self.sync_enabled:
             self.document.update_sync(self.name, old_val)
+
+    def get_operator(self, path):
+        return self.operator
 
     def validate(self, value):
         if value is None and not self.required:

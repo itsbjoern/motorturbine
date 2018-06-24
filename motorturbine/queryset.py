@@ -4,32 +4,33 @@ class QueryBuilder(dict):
 
     def construct(self):
         result = {}
-        for name, block in self.items():
-            if not isinstance(block, QueryBlock):
-                block = eq(block)
+        for name, op in self.items():
+            if not isinstance(op, QueryOperator):
+                op = eq(op)
 
-            result[name] = block()
+            result[name] = op()
         return result
 
 
-class QueryBlock(object):
-    """QueryBlocks can be used to automatically generate
-    queries that are understood by mongo. Each of the blocks
+class QueryOperator(object):
+    """QueryOperator can be used to automatically generate
+    queries that are understood by mongo. Each of the operators
     can be used as defined in the mongo manual as they're just
     a direct mapping.
     See :class:`~motorturbine.document.BaseDocument` to use it with
     querying methods like
     :func:`~motorturbine.document.BaseDocument.get_objects`.
     """
-    def __init__(self, value):
+    def __init__(self, value, requires_sync=True):
         super().__init__()
         self.value = value
+        self.requires_sync = requires_sync
 
 
-class eq(QueryBlock):
+class eq(QueryOperator):
     """Checks for any value that is equal to the given value.
     Not using it is functionally the same as just leaving out
-    a QueryBlock completely.
+    a QueryOperator completely.
 
     Example usage:
 
@@ -45,7 +46,7 @@ class eq(QueryBlock):
         return {'$eq': self.value}
 
 
-class ne(QueryBlock):
+class ne(QueryOperator):
     """Checks for any value that is not equal to the given value.
 
     Example usage:
@@ -61,7 +62,7 @@ class ne(QueryBlock):
         return {'$ne': self.value}
 
 
-class lt(QueryBlock):
+class lt(QueryOperator):
     """Checks for any value that is lesser than the given value.
 
     Example usage:
@@ -77,7 +78,7 @@ class lt(QueryBlock):
         return {'$lt': self.value}
 
 
-class lte(QueryBlock):
+class lte(QueryOperator):
     """Checks for any value that is lesser than or equal to
     the given value.
 
@@ -94,7 +95,7 @@ class lte(QueryBlock):
         return {'$lte': self.value}
 
 
-class gt(QueryBlock):
+class gt(QueryOperator):
     """Checks for any value that is greater than the given value.
 
     Example usage:
@@ -110,7 +111,7 @@ class gt(QueryBlock):
         return {'$gt': self.value}
 
 
-class gte(QueryBlock):
+class gte(QueryOperator):
     """Checks for any value that is greater than or equal to the given value.
 
     Example usage:
@@ -126,7 +127,7 @@ class gte(QueryBlock):
         return {'$gte': self.value}
 
 
-class isin(QueryBlock):
+class isin(QueryOperator):
     """Checks for any value that is included in the given value.
     To enable usage as a direct import the mongo operator 'in'
     was renamed to 'isin'.
@@ -144,7 +145,7 @@ class isin(QueryBlock):
         return {'$in': self.value}
 
 
-class nin(QueryBlock):
+class nin(QueryOperator):
     """Checks for any value that is not included in the given value.
 
     Example usage:
