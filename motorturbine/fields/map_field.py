@@ -29,8 +29,8 @@ class DictWrapper(dict):
 
     def to_field(self, key, value):
         name = '{}.{}'.format(self.dict_field.name, key)
-        new_field = self.dict_field.value_field.clone()
-        new_field._connect_document(self.dict_field.document, name)
+        new_field = self.dict_field.value_field.clone(
+            document=self.dict_field.document, name=name)
 
         old_field = self.get(key, None)
         if old_field is not None:
@@ -70,28 +70,28 @@ class MapField(base_field.BaseField):
             *,
             default=None,
             required=False,
-            sync_enabled=True):
+            unique=False,
+            sync_enabled=True,
+            document=None,
+            name=None):
+        super().__init__(
+            default=default,
+            required=required,
+            unique=unique,
+            sync_enabled=sync_enabled,
+            document=document,
+            name=name)
         self.key_field = key_field
         self.value_field = value_field
-        super().__init__(
-            default=default, required=required, sync_enabled=sync_enabled)
         self.value = DictWrapper(dict_field=self)
 
-    def _connect_document(self, document, name):
-        super()._connect_document(document, name)
-        self.value.update(self.default)
-
-    def clone(self):
-        return self.__class__(
-            self.value_field,
-            key_field=self.key_field,
-            default=self.default,
-            required=self.required,
-            sync_enabled=self.sync_enabled)
+    def clone(self, *args, **kwargs):
+        new_field = super().clone(self.value_field, self.key_field, **kwargs)
+        new_field.value.update(self.default)
+        return new_field
 
     def set_index(self, name, value):
-        return
-        self.operator = updateset.Set(dc)
+        pass
 
     def synced(self):
         super().synced()
@@ -102,7 +102,7 @@ class MapField(base_field.BaseField):
 
     def set_value(self, new_value):
         old_val = self.value.copy()
-        new_operator = self.to_operator(new_value)
+        new_operator = updateset.to_operator(self.value, new_value)
         new_operator.set_original_value(old_val)
 
         same_operator = isinstance(new_operator, self.operator.__class__)

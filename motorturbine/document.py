@@ -38,8 +38,8 @@ class BaseDocument(object):
         object.__setattr__(doc, '_sync_fields', {})
 
         # create general _id field
-        id_field = fields.ObjectIdField(sync_enabled=False)
-        id_field._connect_document(doc, '_id')
+        id_field = fields.ObjectIdField(
+            sync_enabled=False, document=doc, name='_id')
 
         doc_fields['_id'] = id_field
         coll = cls._get_collection()
@@ -50,7 +50,9 @@ class BaseDocument(object):
                     raise errors.FieldExpected(field)
 
                 field = copy.deepcopy(field)
-                field._connect_document(doc, name)
+                field.document = doc
+                field.name = name
+
                 doc_fields[name] = field
 
                 if field.unique:

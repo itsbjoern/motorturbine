@@ -35,6 +35,14 @@ ObjectIdField
     :members:
     :show-inheritance:
 
+DateTimeField
+-------------
+.. autoclass:: motorturbine.fields.DateTimeField
+    :members:
+    :show-inheritance:
+
+    .. note:: Make sure to always use UTC times when trying to insert times to avoid issues between timezones! For example use :func:`datetime.utcnow()` instead of :func:`datetime.now()`
+
 ListField
 ---------
 .. autoclass:: motorturbine.fields.ListField

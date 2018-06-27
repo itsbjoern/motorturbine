@@ -26,8 +26,8 @@ class ListWrapper(list):
 
     def to_field(self, index, value):
         name = '{}.{}'.format(self.list_field.name, str(index))
-        new_field = self.list_field.sub_field.clone()
-        new_field._connect_document(self.list_field.document, name)
+        new_field = self.list_field.sub_field.clone(
+            document=self.list_field.document, name=name)
 
         if index < len(self):
             field = list.__getitem__(self, index)
@@ -65,33 +65,35 @@ class ListField(base_field.BaseField):
         Sets the field type that will be used for the entires of the list.
     """
     def __init__(
-            self, sub_field, default=None, required=False, sync_enabled=True):
-        self.sub_field = sub_field
+            self,
+            sub_field, *,
+            default=None,
+            required=False,
+            unique=False,
+            sync_enabled=True,
+            document=None,
+            name=None):
         super().__init__(
-            default=default, required=required, sync_enabled=sync_enabled)
+            default=default,
+            required=required,
+            unique=unique,
+            sync_enabled=sync_enabled,
+            document=document,
+            name=name)
+        self.sub_field = sub_field
         self.value = ListWrapper(list_field=self)
 
-    def clone(self):
-        return self.__class__(
-            self.sub_field,
-            default=self.default,
-            required=self.required,
-            sync_enabled=self.sync_enabled)
+    def clone(self, *args, **kwargs):
+        return super().clone(self.sub_field, **kwargs)
 
     def push(self, value):
-        return
-        dc = self.value.copy()
-        self.operator = updateset.Set(dc)
+        pass
 
     def pull(self, index):
-        return
-        dc = self.value.copy()
-        self.operator = updateset.Set(dc)
+        pass
 
     def set_index(self, index, value):
-        return
-        dc = self.value.copy()
-        self.operator = updateset.Set(dc)
+        pass
 
     def synced(self):
         super().synced()
@@ -103,7 +105,7 @@ class ListField(base_field.BaseField):
 
     def set_value(self, new_value):
         old_val = self.value.copy()
-        new_operator = self.to_operator(new_value)
+        new_operator = updateset.to_operator(self.value, new_value)
         new_operator.set_original_value(old_val)
 
         same_operator = isinstance(new_operator, self.operator.__class__)
@@ -118,9 +120,6 @@ class ListField(base_field.BaseField):
 
         self.value.clear()
         self.value.extend(new_value)
-
-        # if self.sync_enabled:
-        #     self.document.update_sync(self.name, old_val)
 
     def get_operator(self, path):
         split = path.split('.')

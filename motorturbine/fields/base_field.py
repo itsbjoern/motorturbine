@@ -22,8 +22,14 @@ class BaseField(object):
             default=None,
             required=False,
             unique=False,
-            sync_enabled=True):
+            sync_enabled=True,
+            document=None,
+            name=None):
         super().__init__()
+
+        self.document = document
+        self.name = name
+
         self.unique = unique
         self.required = required
         self.sync_enabled = sync_enabled
@@ -39,22 +45,22 @@ class BaseField(object):
         if self.value is not None:
             self.validate_field(self.value)
 
-    def _connect_document(self, document, name):
-        self.document = document
-        self.name = name
-
-    def clone(self):
-        return self.__class__(
-            default=self.default,
-            required=self.required,
-            sync_enabled=self.sync_enabled)
+    def clone(self, *args, **kwargs):
+        attrs = [
+            'unique', 'default', 'required',
+            'document', 'name', 'sync_enabled']
+        clone_kwargs = {
+            name: kwargs.get(name, getattr(self, name))
+            for name in attrs
+        }
+        return self.__class__(*args, **clone_kwargs)
 
     def synced(self):
         self.operator = None
 
     def set_value(self, new_value):
         old_val = self.value
-        new_operator = self.to_operator(new_value)
+        new_operator = updateset.to_operator(self.value, new_value)
         new_operator.set_original_value(old_val)
 
         if self.operator is not None:
@@ -79,9 +85,6 @@ class BaseField(object):
 
         if self.sync_enabled:
             self.document.update_sync(self.name, old_val)
-
-    def to_operator(self, value):
-        return updateset.to_operator(self.value, value)
 
     def get_operator(self, path):
         return self.operator

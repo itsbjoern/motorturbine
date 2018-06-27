@@ -18,8 +18,8 @@ https://motorturbine.readthedocs.io/en/latest/
 
 ## Todo List
 
-* [ ] Date Field
-* [ ] Unique Parameter
+* [x] Date Field
+* [x] Unique Parameter
 * [ ] Push / Pull Update Operators
 * [ ] References
-
+* [x] BaseField Cleanup
