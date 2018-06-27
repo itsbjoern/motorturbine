@@ -1,5 +1,6 @@
 import pytest
 from motorturbine import BaseDocument, fields, errors, connection
+from pymongo import errors as pymongo_errors
 
 
 @pytest.mark.asyncio
@@ -92,3 +93,21 @@ async def test_required(db_config, database):
 
     with pytest.raises(errors.TypeMismatch):
         int_doc2 = IntDoc()
+
+
+@pytest.mark.asyncio
+async def test_unique(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class IntDoc(BaseDocument):
+        num = fields.IntField(unique=True, required=True)
+
+    int_doc = IntDoc(num=10)
+    await int_doc.save()
+
+    int_doc2 = IntDoc(num=11)
+    await int_doc2.save()
+
+    int_doc3 = IntDoc(num=10)
+    with pytest.raises(pymongo_errors.DuplicateKeyError):
+        await int_doc3.save()

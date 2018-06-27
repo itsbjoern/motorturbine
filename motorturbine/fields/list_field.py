@@ -54,7 +54,7 @@ class ListWrapper(list):
 
 
 class ListField(base_field.BaseField):
-    """__init__(*, sub_field, default=None, required=False)
+    """__init__(sub_field, *, default=None, required=False, unique=False)
 
     This field only allows a `list` type to be set as its value.
 

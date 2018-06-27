@@ -2,7 +2,7 @@ from .. import errors, updateset
 
 
 class BaseField(object):
-    """__init__(*, default=None, required=False)
+    """__init__(*, default=None, required=False, unique=False)
 
     The base class for any field. Used for connecting to the parent document
     and calling general methods for setting and validating values.
@@ -11,12 +11,20 @@ class BaseField(object):
         Defines a default value based on the field type.
     :param bool required: optional *(False)* –
         Defines if the fields value can be None.
+    :param bool unique: optional *(False)* –
+        Defines if the fields value has to be unique.
 
     :raises TypeMismatch: Trying to set a value with the wrong type
     """
 
-    def __init__(self, *, default=None, required=False, sync_enabled=True):
+    def __init__(
+            self, *,
+            default=None,
+            required=False,
+            unique=False,
+            sync_enabled=True):
         super().__init__()
+        self.unique = unique
         self.required = required
         self.sync_enabled = sync_enabled
         self.default = None

@@ -42,6 +42,7 @@ class BaseDocument(object):
         id_field._connect_document(doc, '_id')
 
         doc_fields['_id'] = id_field
+        coll = cls._get_collection()
 
         for name, field in cls.__dict__.items():
             if name not in normals and not isinstance(field, types.MethodType):
@@ -52,6 +53,8 @@ class BaseDocument(object):
                 field._connect_document(doc, name)
                 doc_fields[name] = field
 
+                if field.unique:
+                    coll.create_index(field.name, unique=True)
         return doc
 
     def __init__(self, **kwargs):

@@ -4,7 +4,7 @@ import bson
 
 
 class ObjectIdField(base_field.BaseField):
-    """__init__(*, default=None, required=False)
+    """__init__(*, default=None, required=False, unique=False)
 
     This field only allows a :class:`bson.ObjectId` to be set as its value.
     """

@@ -3,7 +3,7 @@ from . import base_field
 
 
 class StringField(base_field.BaseField):
-    """__init__(*, default=None, required=False)
+    """__init__(*, default=None, required=False, unique=False)
 
     This field only allows a `str` type to be set as its value.
     """
