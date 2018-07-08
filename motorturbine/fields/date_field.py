@@ -11,12 +11,12 @@ class DateTimeField(base_field.BaseField):
     but will always parse them to a :class:`datetime` object.
 
     Accepted types:
-        * str
-        * int
-        * float
-        * datetime.date
-        * datetime.datetime
-    """
+        * str - Any accepted by :func:`dateutil.parser.parse` (`docs <https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse>`_)
+        * int - Unix timestamp
+        * float - Unix timestamp
+        * :class:`datetime.date`
+        * :class:`datetime.datetime`
+    """  # noqa
 
     def set_value(self, new_value):
         # parse to timestamp

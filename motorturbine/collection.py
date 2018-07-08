@@ -12,7 +12,7 @@ def Collection(cls):
         """Queries the collection for multiple objects
         as defined by the supplied filters. For querying
         Motorturbine supplies its own functionality in form
-        of :class:`QueryOperator`.
+        of :class:`~motorturbine.queryset.QueryOperator`.
         """
         for name in kwargs:
             if not hasattr(cls, name):
@@ -32,9 +32,9 @@ def Collection(cls):
 
     @classmethod
     async def get_object(cls, **kwargs):
-        """Queries the collection for a single document
-        Will return None if there is no or more than one document
-        """
+        """A find_one wrapper for :func:`~motorturbine.document.BaseDocument.get_objects`. Queries the collection for a single document.
+        Will return None if there is no or more than one document.
+        """  # noqa
 
         objects = await cls.get_objects(**kwargs)
 

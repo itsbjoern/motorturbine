@@ -51,7 +51,7 @@ When all transformations are done objects can be inserted into the database by c
 Querying objects
 ----------------
 
-The created collections (or document classes) can be queried by using a :class:`~motorturbine.queryset.QueryOperator`.
+The created collections (or document classes) can be queried by using one of the classmethodds :meth:`~motorturbine.document.BaseDocument.get_object` or :meth:`~motorturbine.document.BaseDocument.get_objects`. These methods will search the collection that is automatically created when inserting a new document. To specify the parameters it is possible to use one or multiple instances of :class:`~motorturbine.queryset.QueryOperator`.
 
 .. code-block:: python
 
@@ -68,8 +68,6 @@ Updating fields
 Once everything is set up, instead of just setting values directly there is a fancier way to update your fields by utilising mongos inbuilt atomic update capabilities.
 
 Values that are updated this way don't need to match their old state since they just add to the state instead of completely changing it.
-
-.. caution:: The inherit properties of update operations restrict using it multiple times without saving the document. See :class:`~motorturbine.updateset.UpdateOperator` for more information about this.
 
 .. code-block:: python
 

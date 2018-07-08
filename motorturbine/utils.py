@@ -1,10 +1,12 @@
 def deep_merge(original, update):
     for key, value in original.items():
-        if key in update and isinstance(value, dict):
+        if key not in update:
+            update[key] = value
+
+        elif isinstance(value, dict):
             node = update.setdefault(key, {})
             deep_merge(value, node)
-        else:
-            update[key] = value
+
     return update
 
 
@@ -30,3 +32,13 @@ def item_by_path(container, path):
         return container
 
     return item_by_path(container, '.'.join(split[1:]))
+
+
+def get_sub_path(path, start, end=None):
+    split = path.split('.')
+    split = split[start:]
+
+    if end is not None:
+        split = split[:(end - start)]
+
+    return '.'.join(split)

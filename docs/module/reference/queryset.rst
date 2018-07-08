@@ -1,5 +1,5 @@
 QueryOperator
-----------
+-------------
 .. autoclass:: motorturbine.queryset.QueryOperator
     :members:
 

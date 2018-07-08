@@ -1,4 +1,4 @@
-from .. import errors, updateset
+from .. import errors, updateset, utils
 from . import base_field, string_field
 import copy
 
@@ -24,7 +24,9 @@ class DictWrapper(dict):
 
         if old_value is not None:
             old_value = old_value.value
-        self.dict_field.set_index(key, old_value)
+
+        self.dict_field.pseudo_operators.pop(key, None)
+
         super().__setitem__(key, field)
 
     def to_field(self, key, value):
@@ -37,7 +39,7 @@ class DictWrapper(dict):
             new_field.set_value(old_field.value)
             new_field.synced()
 
-            # new_field.operator = old_field.operator
+            # new_field.operators = old_field.operators
         new_field.set_value(value)
         return new_field
 
@@ -46,6 +48,19 @@ class DictWrapper(dict):
         if hasattr(item, 'value'):
             item = item.value
         return item
+
+    def __delitem__(self, index):
+        item = super().__getitem__(index)
+
+        update = {
+            'op': updateset.Unset(index),
+            'old_value': item.value
+        }
+        self.dict_field.pseudo_operators[index] = [update]
+
+        field_name = self.dict_field.name + '.' + index
+        self.dict_field.document.update_sync(field_name)
+        super().__delitem__(index)
 
 
 class MapField(base_field.BaseField):
@@ -81,6 +96,7 @@ class MapField(base_field.BaseField):
             sync_enabled=sync_enabled,
             document=document,
             name=name)
+        self.pseudo_operators = {}
         self.key_field = key_field
         self.value_field = value_field
         self.value = DictWrapper(dict_field=self)
@@ -90,11 +106,9 @@ class MapField(base_field.BaseField):
         new_field.value.update(self.default)
         return new_field
 
-    def set_index(self, name, value):
-        pass
-
     def synced(self):
         super().synced()
+        self.pseudo_operators = {}
 
         for name in self.value:
             field = dict.__getitem__(self.value, name)
@@ -102,26 +116,37 @@ class MapField(base_field.BaseField):
 
     def set_value(self, new_value):
         old_val = self.value.copy()
-        new_operator = updateset.to_operator(self.value, new_value)
-        new_operator.set_original_value(old_val)
+        next_operator = updateset.to_operator(self.value, new_value)
+        next_operator.set_original_value(old_val)
 
-        same_operator = isinstance(new_operator, self.operator.__class__)
-        if self.operator is not None and not same_operator:
-            if not isinstance(new_operator, updateset.Set):
-                raise Exception(
-                    'Cant use multiple UpdateOperators without saving')
-
-        new_value = new_operator.apply()
+        new_value = next_operator.apply()
         self.validate(new_value)
-        self.operator = new_operator
+
+        update = {
+            'op': next_operator,
+            'old_value': old_val
+        }
+        if isinstance(next_operator, updateset.Set):
+            self.operators = [update]
+            self.pseudo_operators = {}
+        else:
+            self.operators.append(update)
 
         self.value.clear()
         self.value.update(new_value)
 
-    def get_operator(self, path):
+        if self.sync_enabled:
+            self.document.update_sync(self.name)
+
+    def get_updates(self, path):
         split = path.split('.')
         field = dict.get(self.value, split[0])
-        return field.get_operator('.'.join(split[1:]))
+
+        if field is None:
+            return self.pseudo_operators[split[0]]
+
+        sub_path = utils.get_sub_path(path, 1)
+        return field.get_updates(sub_path)
 
     def __getattr__(self, attr):
         path_split = attr.split('.')

@@ -23,6 +23,27 @@ async def test_list_doc(db_config, database):
 
 
 @pytest.mark.asyncio
+async def test_set_list(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.IntField())
+
+    l = ListDoc()
+    l.nums = [1, 2, 3]
+    await l.save()
+
+    coll = database['ListDoc']
+    docs = coll.find_one()
+    assert docs['nums'] == [1, 2, 3]
+
+    l.nums = [5, 6]
+    await l.save()
+    docs = coll.find_one()
+    assert docs['nums'] == [5, 6]
+
+
+@pytest.mark.asyncio
 async def test_list_doc_update(db_config, database):
     connection.Connection.connect(**db_config)
 
@@ -93,15 +114,74 @@ async def test_list_inc(db_config, database):
     l.nums.append(6)
     l.nums.append(7)
 
+    coll = database['ListDoc']
+
     await l.save()
+    docs = coll.find_one()
+    assert docs['nums'] == [5, 6, 7]
 
     l.nums[0] = Inc(5)
+
+    await l.save()
+    docs = coll.find_one()
+    assert docs['nums'][0] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_push_pull(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.IntField())
+
+    l = ListDoc()
+    l.nums.append(5)
+    l.nums.append(6)
+    l.nums.append(7)
+
+    coll = database['ListDoc']
+
+    await l.save()
+    docs = coll.find_one()
+    assert docs['nums'] == [5, 6, 7]
+
+    l.nums.append(8)
+    l.nums.append(9)
+
+    await l.save()
+    docs = coll.find_one()
+    assert docs['nums'] == [5, 6, 7, 8, 9]
+
+    del l.nums[3]
+    l.nums.append(10)
+
+    await l.save()
+    docs = coll.find_one()
+    assert docs['nums'] == [5, 6, 7, 9, 10]
+
+
+@pytest.mark.asyncio
+async def test_list_delete(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.IntField())
+
+    l = ListDoc()
+    l.nums.append(5)
+    l.nums.append(6)
+    l.nums.append(7)
+
+    await l.save()
+
+    del l.nums[0]
 
     await l.save()
     coll = database['ListDoc']
     docs = coll.find_one()
 
-    assert docs['nums'][0] == 10
+    assert len(docs['nums']) == 2
+    assert docs['nums'][0] == 6
 
 
 @pytest.mark.asyncio

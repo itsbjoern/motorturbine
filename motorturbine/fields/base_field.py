@@ -34,7 +34,7 @@ class BaseField(object):
         self.required = required
         self.sync_enabled = sync_enabled
         self.default = None
-        self.operator = None
+        self.updates = []
 
         if default is not None:
             self.default = default
@@ -56,38 +56,32 @@ class BaseField(object):
         return self.__class__(*args, **clone_kwargs)
 
     def synced(self):
-        self.operator = None
+        self.updates = []
 
     def set_value(self, new_value):
         old_val = self.value
-        new_operator = updateset.to_operator(self.value, new_value)
-        new_operator.set_original_value(old_val)
+        next_operator = updateset.to_operator(self.value, new_value)
+        next_operator.set_original_value(old_val)
 
-        if self.operator is not None:
-            is_set = isinstance(new_operator, updateset.Set)
-            if not is_set:
-                same_operator = isinstance(
-                    new_operator, self.operator.__class__)
-                if not same_operator:
-                    raise Exception(
-                        'Cant use multiple UpdateOperators without saving')
-                else:
-                    new_operator.set_original_value(
-                        self.operator.original_value)
-                    self.operator.set_original_value(new_operator.update)
-                    new_operator.update = self.operator.apply()
-
-        new_value = new_operator.apply()
+        new_value = next_operator.apply()
         self.validate(new_value)
 
-        self.operator = new_operator
+        update = {
+            'op': next_operator,
+            'old_value': old_val
+        }
+        if isinstance(next_operator, updateset.Set):
+            self.updates = [update]
+        else:
+            self.updates.append(update)
+
         self.value = new_value
 
         if self.sync_enabled:
-            self.document.update_sync(self.name, old_val)
+            self.document.update_sync(self.name)
 
-    def get_operator(self, path):
-        return self.operator
+    def get_updates(self, path):
+        return self.updates
 
     def validate(self, value):
         if value is None and not self.required:

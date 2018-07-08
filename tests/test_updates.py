@@ -180,9 +180,10 @@ async def test_multiple(db_config, database):
 
     doc.num = Min(15)
     assert doc.num == 10
-    with pytest.raises(Exception):
-        doc.num = Inc(5)
-        assert doc.num == 15
-        doc.num = Dec(2)
-        assert doc.num == 13
-        await doc.save()
+
+    doc.num = Inc(5)
+    assert doc.num == 15
+    doc.num = Dec(2)
+    assert doc.num == 13
+
+    await doc.save()

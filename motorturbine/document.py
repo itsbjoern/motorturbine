@@ -1,6 +1,7 @@
 from . import errors, collection, fields, updateset, utils
 import types
 import copy
+from pymongo import errors as pymongo_errors, UpdateOne
 
 
 @collection.Collection
@@ -35,7 +36,7 @@ class BaseDocument(object):
         doc_fields = object.__getattribute__(doc, '_fields')
 
         # add attribute for syncs
-        object.__setattr__(doc, '_sync_fields', {})
+        object.__setattr__(doc, '_sync_fields', [])
 
         # create general _id field
         id_field = fields.ObjectIdField(
@@ -82,9 +83,10 @@ class BaseDocument(object):
 
         field.set_value(value)
 
-    def update_sync(self, name, value):
+    def update_sync(self, name):
         sync_fields = self._get_sync_fields()
-        sync_fields.setdefault(name, value)
+        if name not in sync_fields:
+            sync_fields.append(name)
 
     def __getattribute__(self, attr):
         # mimic hasattr
@@ -96,8 +98,9 @@ class BaseDocument(object):
             pass
 
         fields = self._get_fields()
+
         path_split = attr.split('.')
-        field_attr = path_split[0]
+        field_attr = utils.get_sub_path(attr, 0, 1)
         field = fields.get(field_attr, None)
 
         if field is None:
@@ -106,7 +109,8 @@ class BaseDocument(object):
         if len(path_split) == 1:
             return field.value
 
-        return getattr(field, '.'.join(path_split[1:]))
+        sub_path = utils.get_sub_path(attr, 1)
+        return getattr(field, sub_path)
 
     async def save(self, limit=0):
         """Calling the save method will start a synchronisation process with
@@ -128,17 +132,17 @@ class BaseDocument(object):
         :raises RetryLimitReached: Raised if limit is reached
         """
         coll = self.__class__._get_collection()
-        fields = self._get_fields()
+        doc_fields = self._get_fields()
         sync_fields = self._get_sync_fields()
         if self._id is None:
             insert_fields = {
                 name: getattr(self, name)
-                for name in fields if name != '_id'
+                for name in doc_fields if name != '_id'
             }
 
             doc = await coll.insert_one({**insert_fields})
             self._id = doc.inserted_id
-            for field in fields.values():
+            for field in doc_fields.values():
                 sync_fields.clear()
                 field.synced()
         else:
@@ -147,29 +151,62 @@ class BaseDocument(object):
 
             tries = 0
             while True:
-                updates = {}
+                bulk_updates = []
                 for path in sync_fields:
                     split = path.split('.')
                     name = split[0]
-                    val = fields[name].get_operator('.'.join(split[1:]))
-                    if val is None:
+
+                    sub_path = utils.get_sub_path(path, 1)
+
+                    ops = doc_fields[name].get_updates(sub_path)
+
+                    assert isinstance(ops, list)
+                    if len(ops) == 0:
                         continue
 
-                    assert isinstance(val, updateset.UpdateOperator)
+                    zippable = True
+                    updates = []
+                    for val in ops:
+                        op, new_value = val['op']()
 
-                    op, value = val()
-                    update = {op: {path: value}}
-                    updates = utils.deep_merge(updates, update)
-                projection = {'_id': 0}
+                        update_name = val.get('force_name', path)
+                        if update_name != path:
+                            zippable = False
+                        update = {
+                            'filter': {},
+                            'update': {op: {update_name: new_value}}
+                        }
+                        if 'old_value' in val:
+                            update['filter'] = {path: val['old_value']}
 
-                result = await coll.update_one(
-                    {'_id': self._id, **sync_fields},
-                    updates)
+                        updates.append(update)
+                    if zippable:
+                        bulk_updates = list(zip(*bulk_updates, updates))
+                    else:
+                        bulk_updates.extend([[up] for up in updates])
 
-                if result.matched_count == 1:
+                update_queries = []
+                for bulk in bulk_updates:
+                    bulk_filter = {'_id': self._id}
+                    bulk_update = {}
+                    for item in bulk:
+                        bulk_filter = {**bulk_filter, **item['filter']}
+                        bulk_update = utils.deep_merge(
+                            bulk_update, item['update'])
+
+                        single_update = UpdateOne(bulk_filter, bulk_update)
+                        update_queries.append(single_update)
+                try:
+                    result = await coll.bulk_write(update_queries)
+                    mongo_result = result.bulk_api_result
+                except pymongo_errors.BulkWriteError as e:
+                    print(e.details)
+                    raise e
+
+                if result.matched_count == len(update_queries):
                     sync_fields.clear()
 
-                    for field in fields.values():
+                    for field in doc_fields.values():
                         field.synced()
                     break
 
@@ -177,6 +214,7 @@ class BaseDocument(object):
                 if limit != 0 and tries >= limit:
                     raise errors.RetryLimitReached(limit, self)
 
+                projection = {'_id': 0}
                 changed_doc = await coll.find_one(
                     {'_id': self._id}, projection=projection)
 
@@ -184,14 +222,14 @@ class BaseDocument(object):
                     for path in sync_fields:
                         item = utils.item_by_path(changed_doc, path)
                         if item is not None:
-                            sync_fields[path] = item
-                    # if needs_update:
-                    #     fields[name] = val
+                            sub_path = utils.get_sub_path(path, 1)
+                            for x in doc_fields[name].get_updates(sub_path):
+                                x['old_value'] = item
 
     def __repr__(self):
         field_rep = ''
-        fields = self._get_fields()
-        for name, field in fields.items():
+        doc_fields = self._get_fields()
+        for name, field in doc_fields.items():
             if name == '_id' and self._id is None:
                 continue
             field_rep = field_rep + ' {}={}'.format(name, repr(field))

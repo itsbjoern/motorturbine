@@ -44,6 +44,26 @@ async def test_map_doc_update(db_config, database):
 
 
 @pytest.mark.asyncio
+async def test_map_doc_delete(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class MapDoc(BaseDocument):
+        mapping = fields.MapField(fields.IntField())
+
+    m = MapDoc()
+    m.mapping['test'] = 10
+
+    await m.save()
+
+    del m.mapping['test']
+    await m.save()
+
+    coll = database['MapDoc']
+    docs = coll.find_one()
+    assert 'test' not in docs['mapping']
+
+
+@pytest.mark.asyncio
 async def test_map_key_value(db_config, database):
     connection.Connection.connect(**db_config)
 

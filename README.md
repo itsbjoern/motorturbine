@@ -20,6 +20,9 @@ https://motorturbine.readthedocs.io/en/latest/
 
 * [x] Date Field
 * [x] Unique Parameter
-* [ ] Push / Pull Update Operators
+* [x] Push / Pull Update Operators
 * [ ] References
+* [x] Use Bulk write for multiple UpdateOperators
 * [x] BaseField Cleanup
+* [x] Remove from list / map
+* [ ] _id -> id

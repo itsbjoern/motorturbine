@@ -8,7 +8,7 @@ Possible ways to create new documents. For now only one way using the BaseDocume
 .. toctree::
    :maxdepth: 2
 
-   document
+   documents
 
 Fields
 ------
