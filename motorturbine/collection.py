@@ -15,7 +15,7 @@ def Collection(cls):
         of :class:`~motorturbine.queryset.QueryOperator`.
         """
         for name in kwargs:
-            if not hasattr(cls, name):
+            if name != 'id' and not hasattr(cls, name):
                 raise errors.FieldNotFound(name, cls.__name__)
 
         coll = cls._get_collection()

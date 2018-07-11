@@ -5,6 +5,8 @@ UpdateOperator
 
     .. note:: Please note that because of the overlap in keywords all these classes are capitalised!
 
+    .. note:: Makes use of write_bulk to enable the usage of multiple update operators to compress all changes to just on save call on the user side.
+
 Set
 ---
 .. autoclass:: motorturbine.updateset.Set

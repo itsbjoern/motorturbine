@@ -1,5 +1,7 @@
 class QueryBuilder(dict):
     def __init__(self, **kwargs):
+        if 'id' in kwargs:
+            kwargs['_id'] = kwargs.pop('id', None)
         super().__init__(**kwargs)
 
     def construct(self):

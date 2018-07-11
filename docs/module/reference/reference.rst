@@ -3,7 +3,7 @@ Reference
 
 Documents
 ---------
-Possible ways to create new documents. For now only one way using the BaseDocument class.
+Create new documents by subclassing the base class.
 
 .. toctree::
    :maxdepth: 2
@@ -12,6 +12,9 @@ Possible ways to create new documents. For now only one way using the BaseDocume
 
 Fields
 ------
+Used to populate your own Documents. Allow to set defaults, unique indexes and other
+field specific parameters.
+
 .. toctree::
    :maxdepth: 2
 
@@ -19,6 +22,8 @@ Fields
 
 Querying
 --------
+Operators that allow to create field specific, mongo-like queries.
+
 .. toctree::
    :maxdepth: 2
 
@@ -26,6 +31,10 @@ Querying
 
 Updating
 --------
+The Updateset enables updating of fields by using atomic operators.
+
+.. note:: Makes use of write_bulk to enable the usage of multiple update operators to compress all changes to just on save call on the user side.
+
 .. toctree::
    :maxdepth: 2
 
@@ -33,6 +42,8 @@ Updating
 
 Connection
 ----------
+A singleton to enable a global connection that can be used by the documents.
+
 .. toctree::
    :maxdepth: 2
 

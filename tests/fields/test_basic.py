@@ -47,6 +47,14 @@ def test_validate_int():
         doc = FailingDocument()
 
 
+def test_failing_init():
+    class Doc(BaseDocument):
+        num = fields.IntField()
+
+    with pytest.raises(errors.FieldNotFound):
+        doc1 = Doc(x=10)
+
+
 def test_str_doc():
     class StrDoc(BaseDocument):
         name = fields.StringField(default='test')

@@ -76,7 +76,7 @@ async def test_repr(db_config, database):
     assert repr(test) == result.format('')
 
     await test.save()
-    id_str = '_id=ObjectId(\'{}\') '.format(test._id)
+    id_str = 'id=ObjectId(\'{}\') '.format(test.id)
     post_save = result.format(id_str)
     assert repr(test) == post_save
 

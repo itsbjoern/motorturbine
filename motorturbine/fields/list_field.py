@@ -86,7 +86,7 @@ class ListWrapper(list):
 
 
 class ListField(base_field.BaseField):
-    """__init__(sub_field, *, default=None, required=False, unique=False)
+    """__init__(sub_field, *, default=[], required=False, unique=False)
 
     This field only allows a `list` type to be set as its value.
 
@@ -96,22 +96,9 @@ class ListField(base_field.BaseField):
     :param BaseField sub_field:
         Sets the field type that will be used for the entires of the list.
     """
-    def __init__(
-            self,
-            sub_field, *,
-            default=None,
-            required=False,
-            unique=False,
-            sync_enabled=True,
-            document=None,
-            name=None):
-        super().__init__(
-            default=default,
-            required=required,
-            unique=unique,
-            sync_enabled=sync_enabled,
-            document=document,
-            name=name)
+    def __init__(self, sub_field, **kwargs):
+        kwargs['default'] = kwargs.pop('default', [])
+        super().__init__(**kwargs)
         self.pseudo_operators = {}
         self.sub_field = sub_field
         self.value = ListWrapper(list_field=self)
@@ -123,13 +110,19 @@ class ListField(base_field.BaseField):
         super().synced()
         self.pseudo_operators = {}
 
+        if self.value is None:
+            return
+
         for index in range(len(self.value)):
             field = list.__getitem__(self.value, index)
             if hasattr(field, 'synced'):
                 field.synced()
 
     def set_value(self, new_value):
-        old_val = self.value.copy()
+        old_val = None
+        if self.value is not None:
+            old_val = self.value.copy()
+
         next_operator = updateset.to_operator(self.value, new_value)
         next_operator.set_original_value(old_val)
 
@@ -146,8 +139,11 @@ class ListField(base_field.BaseField):
         else:
             self.operators.append(update)
 
-        self.value.clear()
-        self.value.extend(new_value)
+        if new_value is None:
+            self.value = new_value
+        else:
+            self.value.clear()
+            self.value.extend(new_value)
 
         if self.sync_enabled:
             self.document.update_sync(self.name)

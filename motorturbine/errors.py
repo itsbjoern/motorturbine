@@ -72,5 +72,16 @@ class RetryLimitReached(BaseException):
     message = 'Reached the retry limit ({!r}) while trying to save {!r}.'
 
 
+class UnresolvableReference(BaseException):
+    """__init__()
+
+    Is raised when a reference can not be set/loaded.
+
+    >>> raise UnresolvableReference()
+    Only inserted documents can be referenced.
+    """
+    message = 'Only inserted documents can be referenced.'
+
+
 class ConfigurationMismatch(BaseException):
     message = '<{!r}> is required if <{!r}> is set!'

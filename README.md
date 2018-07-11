@@ -18,11 +18,4 @@ https://motorturbine.readthedocs.io/en/latest/
 
 ## Todo List
 
-* [x] Date Field
-* [x] Unique Parameter
-* [x] Push / Pull Update Operators
-* [ ] References
-* [x] Use Bulk write for multiple UpdateOperators
-* [x] BaseField Cleanup
-* [x] Remove from list / map
-* [ ] _id -> id
+* [ ] Aggregations

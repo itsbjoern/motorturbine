@@ -24,7 +24,7 @@ class BaseDocument(object):
     <ExampleDocument name='Changed My Name' number=15>
     >>> await doc.save()
     >>> print(doc)
-    <ExampleDocument _id=ObjectId('$oid') name='Changed My Name' number=15>
+    <ExampleDocument id=ObjectId('$oid') name='Changed My Name' number=15>
 
     :raises FieldNotFound: On access of a non-existent field
     """
@@ -38,11 +38,11 @@ class BaseDocument(object):
         # add attribute for syncs
         object.__setattr__(doc, '_sync_fields', [])
 
-        # create general _id field
+        # create general id field
         id_field = fields.ObjectIdField(
-            sync_enabled=False, document=doc, name='_id')
+            sync_enabled=False, document=doc, name='id')
 
-        doc_fields['_id'] = id_field
+        doc_fields['id'] = id_field
         coll = cls._get_collection()
 
         for name, field in cls.__dict__.items():
@@ -62,12 +62,14 @@ class BaseDocument(object):
 
     def __init__(self, **kwargs):
         super().__init__()
+
+        kwargs['id'] = kwargs.pop('_id', None)
         for name, field in self._get_fields().items():
-            if name in kwargs:
-                field.set_value(kwargs.get(name))
-                field.synced()
-            else:
-                field.validate(field.default)
+            field.set_value(kwargs.pop(name, field.default))
+            field.synced()
+        if len(kwargs) != 0:
+            key = next(iter(kwargs))
+            raise errors.FieldNotFound(key, self)
 
     def _get_fields(self):
         return object.__getattribute__(self, '_fields')
@@ -112,6 +114,45 @@ class BaseDocument(object):
         sub_path = utils.get_sub_path(attr, 1)
         return getattr(field, sub_path)
 
+    async def get_reference(self, field_name, collections=None):
+        """When using :class:`~motorturbine.fields.ReferenceField` this method allows
+        loading the reference by the fields name.
+        Returns `None` if the given field exists but is not a :class:`~motorturbine.fields.ReferenceField` type.
+
+        :param str field_name: The name of the ReferenceField
+        :param list collections: optional (*None*) –
+            A list of :class:`~motorturbine.document.BaseDocument` classes.
+            In case you allowed subclassing in a
+            :class:`~motorturbine.fields.ReferenceField` you can specify
+            the additional document collections that will be searched if they are
+            not the same as the specified documents type.
+
+        :raises FieldNotFound: On access of a non-existent field
+        """  # noqa
+        doc_fields = self._get_fields()
+        field = doc_fields.get(field_name, None)
+
+        if field is None:
+            raise errors.FieldNotFound(field_name, self)
+
+        if not isinstance(field, fields.ReferenceField):
+            return None
+
+        oid = getattr(self, field_name)
+
+        reference_doc = field.reference_doc
+        ref = await reference_doc.get_object(id=oid)
+
+        if ref is None and collections is not None:
+            if not isinstance(collections, list):
+                raise errors.TypeMismatch(list, collections.__class__)
+            for coll in collections:
+                ref = await coll.get_object(id=oid)
+                if ref is not None:
+                    break
+
+        return ref
+
     async def save(self, limit=0):
         """Calling the save method will start a synchronisation process with
         the database. Every change that was made since the last
@@ -121,7 +162,7 @@ class BaseDocument(object):
         these changes first and only then update them to avoid critical write
         errors.
 
-        If a document has not been saved before the '_id' field will be set
+        If a document has not been saved before the 'id' field will be set
         automatically after the update is done.
 
         :param int limit: optional *(0)* –
@@ -134,14 +175,14 @@ class BaseDocument(object):
         coll = self.__class__._get_collection()
         doc_fields = self._get_fields()
         sync_fields = self._get_sync_fields()
-        if self._id is None:
+        if self.id is None:
             insert_fields = {
                 name: getattr(self, name)
-                for name in doc_fields if name != '_id'
+                for name in doc_fields if name != 'id'
             }
 
             doc = await coll.insert_one({**insert_fields})
-            self._id = doc.inserted_id
+            self.id = doc.inserted_id
             for field in doc_fields.values():
                 sync_fields.clear()
                 field.synced()
@@ -187,7 +228,7 @@ class BaseDocument(object):
 
                 update_queries = []
                 for bulk in bulk_updates:
-                    bulk_filter = {'_id': self._id}
+                    bulk_filter = {'_id': self.id}
                     bulk_update = {}
                     for item in bulk:
                         bulk_filter = {**bulk_filter, **item['filter']}
@@ -216,7 +257,7 @@ class BaseDocument(object):
 
                 projection = {'_id': 0}
                 changed_doc = await coll.find_one(
-                    {'_id': self._id}, projection=projection)
+                    {'_id': self.id}, projection=projection)
 
                 for name, val in changed_doc.items():
                     for path in sync_fields:
@@ -230,7 +271,7 @@ class BaseDocument(object):
         field_rep = ''
         doc_fields = self._get_fields()
         for name, field in doc_fields.items():
-            if name == '_id' and self._id is None:
+            if name == 'id' and self.id is None:
                 continue
             field_rep = field_rep + ' {}={}'.format(name, repr(field))
 

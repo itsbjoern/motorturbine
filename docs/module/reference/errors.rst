@@ -17,3 +17,8 @@ RetryLimitReached
 -----------------
 .. autoclass:: motorturbine.errors.RetryLimitReached
     :members:
+
+UnresolvableReference
+---------------------
+.. autoclass:: motorturbine.errors.UnresolvableReference
+    :members:

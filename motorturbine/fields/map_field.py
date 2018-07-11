@@ -65,7 +65,7 @@ class DictWrapper(dict):
 
 class MapField(base_field.BaseField):
     """__init__(value_field, key_field=StringField(), *, \
-    default=None, required=False, unique=False)
+    default={}, required=False, unique=False)
 
     This field only allows a `dict` type to be set as its value.
 
@@ -78,24 +78,12 @@ class MapField(base_field.BaseField):
     :param BaseField key_field: optional (:class:`StringField`) –
         Sets the field type that will be used for the keys of the dict.
     """
-    def __init__(
-            self,
-            value_field,
-            key_field=string_field.StringField(),
-            *,
-            default=None,
-            required=False,
-            unique=False,
-            sync_enabled=True,
-            document=None,
-            name=None):
-        super().__init__(
-            default=default,
-            required=required,
-            unique=unique,
-            sync_enabled=sync_enabled,
-            document=document,
-            name=name)
+    def __init__(self,
+                 value_field,
+                 key_field=string_field.StringField(),
+                 **kwargs):
+        kwargs['default'] = kwargs.pop('default', {})
+        super().__init__(**kwargs)
         self.pseudo_operators = {}
         self.key_field = key_field
         self.value_field = value_field
@@ -110,12 +98,18 @@ class MapField(base_field.BaseField):
         super().synced()
         self.pseudo_operators = {}
 
+        if self.value is None:
+            return
+
         for name in self.value:
             field = dict.__getitem__(self.value, name)
             field.synced()
 
     def set_value(self, new_value):
-        old_val = self.value.copy()
+        old_val = None
+        if self.value is not None:
+            old_val = self.value.copy()
+
         next_operator = updateset.to_operator(self.value, new_value)
         next_operator.set_original_value(old_val)
 
@@ -132,8 +126,11 @@ class MapField(base_field.BaseField):
         else:
             self.operators.append(update)
 
-        self.value.clear()
-        self.value.update(new_value)
+        if new_value is None:
+            self.value = new_value
+        else:
+            self.value.clear()
+            self.value.update(new_value)
 
         if self.sync_enabled:
             self.document.update_sync(self.name)

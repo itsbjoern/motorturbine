@@ -130,7 +130,7 @@ async def test_map_defaults(db_config, database):
     m2 = MapDoc()
     await m2.save()
 
-    doc = coll.find_one({'_id': m2._id})
+    doc = coll.find_one({'_id': m2.id})
     assert doc['mapping'] == {'x': 5}
 
 

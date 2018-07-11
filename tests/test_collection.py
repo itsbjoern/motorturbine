@@ -17,7 +17,7 @@ async def test_query(db_config):
     assert found is None
 
     found = await Document.get_object(num=6)
-    assert found._id == doc._id
+    assert found.id == doc.id
 
     doc2 = Document(num=10)
     await doc2.save()
