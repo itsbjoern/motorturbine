@@ -49,6 +49,14 @@ ReferenceField
     :members:
     :show-inheritance:
 
+DocumentField
+-------------
+.. autoclass:: motorturbine.fields.DocumentField
+    :members:
+    :show-inheritance:
+
+    .. note:: DocumentFields are not only stackable with each other, it is also possible to insert them into a :class:`~motorturbine.fields.ListField` or :class:`~motorturbine.fields.MapField`.
+
 ListField
 ---------
 .. autoclass:: motorturbine.fields.ListField

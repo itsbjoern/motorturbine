@@ -34,11 +34,24 @@ def item_by_path(container, path):
     return item_by_path(container, '.'.join(split[1:]))
 
 
-def get_sub_path(path, start, end=None):
-    split = path.split('.')
-    split = split[start:]
+def get_sub_path(path, start, end=None, symbol='.'):
+    """Returns a split subpath of a string by symbol.
 
+    :param str path: The path to be split
+    :param int start: The start index to be split off
+    :param int end: Optional - The end index to be split off
+    :param str symbol: Optional (*.*) - The symbol that will be used to cut the string
+    :returns: The new subpatch as a string and a tuple with the start and end part that got cut off
+    :rtype: :func:`tuple`
+    """  # noqa
+    split = path.split(symbol)
+    result = split[start:]
+    start_bit = split[:start]
+
+    end_bit = []
     if end is not None:
-        split = split[:(end - start)]
+        result = split[:(end - start)]
+        end_bit = split[end:]
 
-    return '.'.join(split)
+    cutoff = (symbol.join(start_bit), symbol.join(end_bit))
+    return symbol.join(result), cutoff

@@ -9,6 +9,6 @@ class StringField(base_field.BaseField):
     """
     def validate_field(self, value):
         if not isinstance(value, str):
-            raise errors.TypeMismatch(str, value)
+            raise errors.TypeMismatch(str, type(value))
 
         return True

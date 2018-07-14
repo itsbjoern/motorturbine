@@ -3,6 +3,11 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+requirements = []
+with open('requirements.txt') as fr:
+    requirements = fr.read().splitlines()
+
+
 setup(name='motorturbine',
       version='0.4.1',
       description='A ORM package for asyncio and motor',
@@ -14,6 +19,7 @@ setup(name='motorturbine',
       license='MIT',
       packages=find_packages(),
       zip_safe=False,
+      install_requires=requirements,
       include_package_data=True,
       package_data={'motorturbine': ['motorturbine']},
       classifiers=[

@@ -161,6 +161,22 @@ async def test_list_push_pull(db_config, database):
 
 
 @pytest.mark.asyncio
+async def test_list_push_pull(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class ListDoc(BaseDocument):
+        nums = fields.ListField(fields.IntField())
+
+    l = ListDoc(nums=[1])
+    l.nums.extend([2, 3])
+
+    await l.save()
+    doc = await ListDoc.get_object()
+
+    assert doc.nums == [1, 2, 3]
+
+
+@pytest.mark.asyncio
 async def test_list_delete(db_config, database):
     connection.Connection.connect(**db_config)
 

@@ -1,6 +1,7 @@
 import pytest
 from motorturbine import BaseDocument, fields, errors, connection
 from pymongo import errors as pymongo_errors
+import json
 
 
 @pytest.mark.asyncio
@@ -111,3 +112,46 @@ async def test_unique(db_config, database):
     int_doc3 = IntDoc(num=10)
     with pytest.raises(pymongo_errors.DuplicateKeyError):
         await int_doc3.save()
+
+
+@pytest.mark.asyncio
+async def test_json(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    class Doc(BaseDocument):
+        num = fields.IntField()
+        string = fields.StringField()
+        lst = fields.ListField(fields.IntField())
+        map1 = fields.MapField(fields.IntField())
+        map2 = fields.MapField(fields.StringField())
+
+    l = [1, 2, 3]
+    m1 = {'test': 15, 'x': 8}
+    m2 = {'15': '25', '7': 'value'}
+    expected = {
+        'num': 10,
+        'string': 'abc',
+        'lst': l,
+        'map1': m1,
+        'map2': m2
+    }
+    doc = Doc(**expected)
+
+    await doc.save()
+
+    from_db = await Doc.get_object(id=doc.id)
+    son = from_db.to_json()
+    son.pop('id')
+
+    print(json.dumps(son), json.dumps(expected))
+    assert son == expected
+
+
+@pytest.mark.asyncio
+async def test_set_id(db_config, database):
+    connection.Connection.connect(**db_config)
+
+    with pytest.raises(Exception):
+        class Doc(BaseDocument):
+            id = fields.IntField()
+        doc = Doc()

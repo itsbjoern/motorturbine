@@ -19,7 +19,8 @@ class ReferenceField(ObjectIdField):
     def __init__(self, reference_doc, allow_subclass=False, **kwargs):
         super().__init__(**kwargs)
         if not issubclass(reference_doc, document.BaseDocument):
-            raise errors.TypeMismatch(document.BaseDocument, reference_doc)
+            raise errors.TypeMismatch(
+                document.BaseDocument, type(reference_doc))
         self.reference_doc = reference_doc
         self.allow_subclass = allow_subclass
 

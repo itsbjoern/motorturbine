@@ -39,6 +39,6 @@ class DateTimeField(base_field.BaseField):
 
     def validate_field(self, value):
         if not isinstance(value, datetime.datetime):
-            raise errors.TypeMismatch(datetime.datetime, value)
+            raise errors.TypeMismatch(datetime.datetime, type(value))
 
         return True

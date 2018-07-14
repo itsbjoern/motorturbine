@@ -49,6 +49,8 @@ class BaseDocument(object):
             if name not in normals and not isinstance(field, types.MethodType):
                 if not isinstance(field, fields.BaseField):
                     raise errors.FieldExpected(field)
+                if name == 'id':
+                    raise Exception('The `id` field is reserved and will be set automatically.')  # noqa
 
                 field = copy.deepcopy(field)
                 field.document = doc
@@ -70,6 +72,9 @@ class BaseDocument(object):
         if len(kwargs) != 0:
             key = next(iter(kwargs))
             raise errors.FieldNotFound(key, self)
+
+    def _get_field(self, name):
+        return self._get_fields().get(name, None)
 
     def _get_fields(self):
         return object.__getattribute__(self, '_fields')
@@ -94,24 +99,25 @@ class BaseDocument(object):
         # mimic hasattr
         try:
             val = object.__getattribute__(self, attr)
-            if attr in dir(object) or isinstance(val, types.MethodType):
+
+            is_method = isinstance(val, types.MethodType)
+            is_function = isinstance(val, types.FunctionType)
+            if attr in dir(object) or is_method or is_function:
                 return val
         except AttributeError:
             pass
 
         fields = self._get_fields()
 
-        path_split = attr.split('.')
-        field_attr = utils.get_sub_path(attr, 0, 1)
-        field = fields.get(field_attr, None)
+        sub_path, cutoff = utils.get_sub_path(attr, 1)
+        field = fields.get(cutoff[0], None)
 
         if field is None:
             raise errors.FieldNotFound(attr, self)
 
-        if len(path_split) == 1:
+        if sub_path == '':
             return field.value
 
-        sub_path = utils.get_sub_path(attr, 1)
         return getattr(field, sub_path)
 
     async def get_reference(self, field_name, collections=None):
@@ -153,6 +159,11 @@ class BaseDocument(object):
 
         return ref
 
+    def to_json(self):
+        """Returns the entire document as a json dictionary."""
+        doc_fields = self._get_fields()
+        return {name: field.get_value() for name, field in doc_fields.items()}
+
     async def save(self, limit=0):
         """Calling the save method will start a synchronisation process with
         the database. Every change that was made since the last
@@ -177,7 +188,7 @@ class BaseDocument(object):
         sync_fields = self._get_sync_fields()
         if self.id is None:
             insert_fields = {
-                name: getattr(self, name)
+                name: doc_fields[name].get_value()
                 for name in doc_fields if name != 'id'
             }
 
@@ -189,16 +200,13 @@ class BaseDocument(object):
         else:
             if len(sync_fields) == 0:
                 return
-
             tries = 0
             while True:
                 bulk_updates = []
+
                 for path in sync_fields:
-                    split = path.split('.')
-                    name = split[0]
-
-                    sub_path = utils.get_sub_path(path, 1)
-
+                    sub_path, cutoff = utils.get_sub_path(path, 1)
+                    name = cutoff[0]
                     ops = doc_fields[name].get_updates(sub_path)
 
                     assert isinstance(ops, list)
@@ -235,8 +243,8 @@ class BaseDocument(object):
                         bulk_update = utils.deep_merge(
                             bulk_update, item['update'])
 
-                        single_update = UpdateOne(bulk_filter, bulk_update)
-                        update_queries.append(single_update)
+                    single_update = UpdateOne(bulk_filter, bulk_update)
+                    update_queries.append(single_update)
                 try:
                     result = await coll.bulk_write(update_queries)
                     mongo_result = result.bulk_api_result
@@ -263,7 +271,7 @@ class BaseDocument(object):
                     for path in sync_fields:
                         item = utils.item_by_path(changed_doc, path)
                         if item is not None:
-                            sub_path = utils.get_sub_path(path, 1)
+                            sub_path, cutoff = utils.get_sub_path(path, 1)
                             for x in doc_fields[name].get_updates(sub_path):
                                 x['old_value'] = item
 

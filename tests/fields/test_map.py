@@ -68,13 +68,13 @@ async def test_map_key_value(db_config, database):
     connection.Connection.connect(**db_config)
 
     class MapDoc(BaseDocument):
-        mapping = fields.MapField(fields.IntField(), fields.IntField())
+        mapping = fields.MapField(fields.IntField())
 
     m = MapDoc()
-    m.mapping[5] = 5
+    m.mapping['5'] = 5
 
     with pytest.raises(errors.TypeMismatch):
-        m.mapping['test'] = 5
+        m.mapping[5] = 5
 
 
 @pytest.mark.asyncio

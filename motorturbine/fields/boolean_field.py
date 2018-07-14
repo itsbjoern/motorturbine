@@ -9,6 +9,6 @@ class BooleanField(base_field.BaseField):
     """
     def validate_field(self, value):
         if not isinstance(value, bool):
-            raise errors.TypeMismatch(bool, value)
+            raise errors.TypeMismatch(bool, type(value))
 
         return True

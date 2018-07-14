@@ -31,7 +31,7 @@ class QueryOperator(object):
 
 class Eq(QueryOperator):
     """Checks for any value that is equal to the given value.
-     Not using it is the default case and functionally the same
+    Not using it is the default case and functionally the same
     as just leaving out a QueryOperator completely.
 
     Example usage:

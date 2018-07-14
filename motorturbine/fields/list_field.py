@@ -1,6 +1,5 @@
 from .. import errors, updateset, utils
 from . import base_field
-import copy
 import uuid
 
 
@@ -8,6 +7,9 @@ class ListWrapper(list):
     def __init__(self, *args, list_field=None, **kwargs):
         self.list_field = list_field
         super().__init__(*args, **kwargs)
+
+    def __eq__(self, other):
+        return self.as_value() == other
 
     def __contains__(self, value):
         for field in self:
@@ -39,7 +41,6 @@ class ListWrapper(list):
         old_value = super().__getitem__(index).value
 
         self.list_field.pseudo_operators.pop(str(index), None)
-        print('set_val', index, value)
         list.__setitem__(self, index, field)
 
     def to_field(self, index, value, sync_field=True):
@@ -61,9 +62,6 @@ class ListWrapper(list):
 
         return new_field
 
-    def copy(self):
-        return [item for item in self]
-
     def append(self, value):
         field = self.to_field(len(self), value, sync_field=False)
 
@@ -78,11 +76,21 @@ class ListWrapper(list):
         self.list_field.document.update_sync(field_name)
         list.append(self, field)
 
+    def extend(self, values):
+        for value in values:
+            self.append(value)
+
+    def _extend(self, values):
+        for value in values:
+            field = self.to_field(len(self), value, sync_field=False)
+            list.append(self, field)
+
     def __getitem__(self, index):
         item = super().__getitem__(index)
-        if hasattr(item, 'value'):
-            item = item.value
-        return item
+        return item.value
+
+    def as_value(self):
+        return [x.get_value() for x in self]
 
 
 class ListField(base_field.BaseField):
@@ -121,7 +129,7 @@ class ListField(base_field.BaseField):
     def set_value(self, new_value):
         old_val = None
         if self.value is not None:
-            old_val = self.value.copy()
+            old_val = self.value.as_value()
 
         next_operator = updateset.to_operator(self.value, new_value)
         next_operator.set_original_value(old_val)
@@ -134,33 +142,48 @@ class ListField(base_field.BaseField):
             'old_value': old_val
         }
         if isinstance(next_operator, updateset.Set):
-            self.operators = [update]
+            self.updates = [update]
             self.pseudo_operators = {}
         else:
-            self.operators.append(update)
+            self.updates.append(update)
 
         if new_value is None:
             self.value = new_value
         else:
             self.value.clear()
-            self.value.extend(new_value)
+            self.value._extend(new_value)
 
         if self.sync_enabled:
             self.document.update_sync(self.name)
 
     def get_updates(self, path):
-        split = path.split('.')
-
         if path == '':
-            return self.operators
+            # we need to make sure that if there is a set update on the map
+            # each update is actually a value representation of its field
+            # instead of the field itself (or document)
+            for update in self.updates:
+                op = update['op']
+                for index, field in enumerate(op.update):
+                    as_field = self.sub_field.clone(sync_enabled=False)
+                    as_field.set_value(field)
+                    op.update[index] = as_field.get_value()
 
-        val = self.pseudo_operators.get(split[0], None)
+                old = update['old_value']
+                for index, field in enumerate(old):
+                    if isinstance(field, base_field.BaseField):
+                        old[index] = field.get_value()
+
+            return self.updates
+
+        sub_path, cutoff = utils.get_sub_path(path, 1)
+        index = cutoff[0]
+
+        val = self.pseudo_operators.get(index, None)
         if val is not None:
             return val
 
-        field = list.__getitem__(self.value, int(split[0]))
+        field = list.__getitem__(self.value, int(index))
 
-        sub_path = utils.get_sub_path(path, 1)
         return field.get_updates(sub_path)
 
     def __getattr__(self, attr):
@@ -173,7 +196,9 @@ class ListField(base_field.BaseField):
 
     def validate_field(self, value):
         if not isinstance(value, list):
-            raise errors.TypeMismatch(list, value)
+            raise errors.TypeMismatch(list, type(value))
 
-        for item in value:
-            self.sub_field.validate(item)
+    def get_value(self):
+        if self.value is None:
+            return None
+        return self.value.as_value()

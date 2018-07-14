@@ -83,6 +83,9 @@ class BaseField(object):
     def get_updates(self, path):
         return self.updates
 
+    def get_value(self):
+        return self.value
+
     def validate(self, value):
         if value is None and not self.required:
             return True

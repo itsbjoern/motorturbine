@@ -9,6 +9,6 @@ class FloatField(base_field.BaseField):
     """
     def validate_field(self, value):
         if not isinstance(value, float):
-            raise errors.TypeMismatch(float, value)
+            raise errors.TypeMismatch(float, type(value))
 
         return True
