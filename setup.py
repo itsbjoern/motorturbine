@@ -9,7 +9,7 @@ with open('requirements.txt') as fr:
 
 
 setup(name='motorturbine',
-      version='0.4.1',
+      version='0.5.0',
       description='A ORM package for asyncio and motor',
       long_description=long_description,
       long_description_content_type="text/markdown",
